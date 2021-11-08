@@ -1,7 +1,9 @@
 import sqlite3
 import os
+from discord.client import Client
 from dotenv import load_dotenv
 from discord.ext import commands
+from discord.utils import get
 # import discord
 # from queue import Queue
 # import threading
@@ -10,9 +12,10 @@ from discord.ext import commands
 # dbOperations = Queue(maxsize=0)
 
 load_dotenv()
-TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
-PREFIX = "".join((os.getenv('THE_COUNT_PREFIX'), ' '))
-
+#TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
+TOKEN = "OTA3Mzc4ODk2MDA0MDYzMjcy.YYmUcw.KghvOFta0vstq8CE7aoFf7kZE2w"
+#PREFIX = "".join((os.getenv('THE_COUNT_PREFIX'), ' '))
+PREFIX = "!count "
 bot = commands.Bot(command_prefix=PREFIX)
 # client = discord.Client()
 
@@ -312,7 +315,7 @@ async def on_message(_message):
             print(current_count)
             old_count = int(temp[1])
             print(old_count)
-            if str(ctx.message.author.id) == str(temp[3]):
+            if str(ctx.message.author.id) == str(temp[3] +"test"):
                 print("greedy")
                 guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message = temp
                 count = str(0)
@@ -329,6 +332,7 @@ async def on_message(_message):
                 await ctx.send(str(temp[7]).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
                 channel = bot.get_channel(int(temp[6]))
                 await channel.send('<@%s> lost the count when it was at %s' % (ctx.message.author.id, old_count))
+                await ctx.message.add_reaction('💀')
                 return
             if old_count + 1 != current_count:
                 guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message = temp
@@ -345,7 +349,8 @@ async def on_message(_message):
                 await ctx.send(str(temp[4]).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
                 # await bot.send_message(bot.get_channel(temp[6]), 'test')
                 channel = bot.get_channel(int(temp[6]))
-                await channel.send('<@%s> lost the count when it was at %s' % (ctx.message.author.id, old_count))
+                await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
+                await ctx.message.add_reaction('❌')
                 return
             if old_count + 1 == current_count:
                 guild_id, old_count, number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message = temp
@@ -358,7 +363,7 @@ async def on_message(_message):
 
                 cursor.execute("UPDATE count_info SET guild_id = ?, current_count = ?, number_of_resets = ?, last_user = ?, message = ?, channel_id = ?, log_channel_id = ?, greedy_message = ? WHERE guild_id = '%s'" % temp1[0], (temp1[0], temp1[1], temp1[2], temp1[3], temp1[4], temp1[5], temp1[6], temp1[7],))
                 connection.commit()
-
+                await ctx.message.add_reaction('✅')
                 return
             return
 
@@ -397,18 +402,19 @@ async def on_message(_message):
 # -- End General Function Declarations --
 
 
-# connection = sqlite3.connect(DbName)
-# cursor = connection.cursor()
-# cursor.execute("UPDATE count_info SET count = count + '1' WHERE last_user = 'AlexV#4999'")
-# connection.commit()
-# # cursor.execute("SELECT count FROM count_info WHERE guild_id LIKE 'test1'")
-# # test = cursor.fetchone()
+#connection = sqlite3.connect(DbName)
+#cursor = connection.cursor()
+#cursor.execute("UPDATE count_info SET count = count + '1' WHERE last_user = 'AlexV#4999'")
+#connection.commit()
+#cursor.execute("SELECT count FROM count_info WHERE guild_id LIKE 'test1'")
+#test = cursor.fetchone()
 # connection.close()
 # # print(test)
 
 
 # -- Begin Initialization code --
 check_if_table_exists(DbName, 'count_info', count_info_headers)
+create_new_entry(0)
 # t = threading.Timer(0, run_queue)
 # t.start()
 # print("passed_threading")
