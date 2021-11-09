@@ -4,6 +4,7 @@ from discord.client import Client
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord.utils import get
+from keys import discord_key
 # import discord
 # from queue import Queue
 # import threading
@@ -13,7 +14,7 @@ from discord.utils import get
 
 load_dotenv()
 #TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
-TOKEN = "OTA3Mzc4ODk2MDA0MDYzMjcy.YYmUcw.KghvOFta0vstq8CE7aoFf7kZE2w"
+TOKEN = discord_key()
 #PREFIX = "".join((os.getenv('THE_COUNT_PREFIX'), ' '))
 PREFIX = "!count "
 bot = commands.Bot(command_prefix=PREFIX)
@@ -21,7 +22,8 @@ bot = commands.Bot(command_prefix=PREFIX)
 
 DbName = 'count.sqlite'
 count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message']
-
+stat_headers = ['user', 'count']
+beer_headers = ['user', 'user2', 'count']
 connection = sqlite3.connect(DbName)
 cursor = connection.cursor()
 
@@ -90,7 +92,7 @@ bot.remove_command('help')
 
 @bot.command(name='help')
 async def count_help(ctx):
-    response = """See https://github.com/AlexVerrico/Discord-Counting-Bot for detailed help info"""
+    response = """See https://github.com/bloedboemmel/Discord-Counting-Bot for detailed help info"""
     await ctx.send(response)
     return
 
@@ -111,6 +113,8 @@ async def wrong_message(ctx, *args):
     # cursor = connection.cursor()
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
     test = cursor.fetchone()
+
+    
     # connection.close()
     # print(test)
     if test is None:
@@ -154,6 +158,7 @@ async def greedy_message(ctx, *args):
     # connection = sqlite3.connect(DbName)
     # cursor = connection.cursor()
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    
     test = cursor.fetchone()
     # connection.close()
     # print(test)
@@ -163,6 +168,7 @@ async def greedy_message(ctx, *args):
                          count_channel_id=ctx.channel.id,
                          log_channel_id=ctx.channel.id,
                          greedy_message=_message)
+        
     else:
         guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, old_greedy_message = test
         # dbOperations.put(['update',
@@ -203,6 +209,8 @@ use `!count counting_channel this_channel` to use the channel that you are typin
     # connection = sqlite3.connect(DbName)
     # cursor = connection.cursor()
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    check_if_table_exists(DbName, f'stats_{ctx.guild.id}', stat_headers)
+    check_if_table_exists(DbName, f'beers_{ctx.guild.id}', beer_headers)
     test = cursor.fetchone()
     # connection.close()
     # print(test)
@@ -280,7 +288,51 @@ async def counting_channel_error(ctx, error):
         raise error
 
 # -- End Count Master Commands --
+# -- Begin Beer Count Commands --
+@bot.command(name='beer_count')
+async def beer_count(ctx, args1):
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    temp = cursor.fetchone()
+    if temp is None:
+        print("No log_channel for beer_score")
+        return
+    elif temp[6] != ctx.channel.id:
+        print("Wrong channel for beer_score")
+        return
+    print("beer_count")
+    if args1 == 'me':
+        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} WHERE user = '{ctx.message.author.id}' ORDER BY count DESC")
+    else:
+        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} ORDER BY count DESC")
+    db_restults = cursor.fetchall()
+    for result in db_restults:
+        user1, user2, count = result
+        if user1 == '' or user2 == '':
+            continue
+        await ctx.send(f"<@{user2}> ows <@{user1}> {count} beers")
 
+@bot.command(name='highscore')
+async def highscore(ctx):
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    temp = cursor.fetchone()
+    if temp is None:
+        print("No log_channel for highscore")
+        return
+    elif temp[6] != ctx.channel.id:
+        print("Wrong channel for highscore")
+        return
+    print("highscore")
+    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} ORDER BY count DESC")
+    db_restults = cursor.fetchall()
+    i = 1
+    for result in db_restults:
+        user1, count = result
+        if user1 == '':
+            continue
+        await ctx.send(f"<@{user1}>: {count}")
+        if i == 10:
+            break
+        i += 1
 
 # -- Begin counting detection --
 @bot.event
@@ -339,6 +391,7 @@ async def on_message(_message):
                 count = str(0)
                 number_of_resets = str(int(old_number_of_resets) + 1)
                 last_user = str('')
+                beers_last_user = str(ctx.message.author.id)
                 # dbOperations.put(['update',
                 temp1 = [guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message]
                 # ])
@@ -349,8 +402,19 @@ async def on_message(_message):
                 await ctx.send(str(temp[4]).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
                 # await bot.send_message(bot.get_channel(temp[6]), 'test')
                 channel = bot.get_channel(int(temp[6]))
-                await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
                 await ctx.message.add_reaction('❌')
+                await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
+                #if beers_last_user == old_last_user:
+                #    return
+                cursor.execute(f"SELECT * FROM beers_{_message.guild.id} WHERE user = '{beers_last_user}' AND user2 = '{old_last_user}'")
+                temp = cursor.fetchone()
+                if temp is None:
+                    cursor.execute(f"INSERT INTO beers_{_message.guild.id} (user, user2, count) VALUES ('{beers_last_user}','{old_last_user}', '1')")
+                    connection.commit()
+                else:
+                    cursor.execute(f"UPDATE beers_{_message.guild.id} SET count = count + 1 WHERE user = '{beers_last_user}' AND user2 = '{old_last_user}'")
+                    connection.commit()
+                
                 return
             if old_count + 1 == current_count:
                 guild_id, old_count, number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message = temp
@@ -363,6 +427,14 @@ async def on_message(_message):
 
                 cursor.execute("UPDATE count_info SET guild_id = ?, current_count = ?, number_of_resets = ?, last_user = ?, message = ?, channel_id = ?, log_channel_id = ?, greedy_message = ? WHERE guild_id = '%s'" % temp1[0], (temp1[0], temp1[1], temp1[2], temp1[3], temp1[4], temp1[5], temp1[6], temp1[7],))
                 connection.commit()
+                cursor.execute(f"SELECT * FROM stats_{_message.guild.id} WHERE user = '{last_user}'")
+                temp = cursor.fetchone()
+                if temp is None:
+                    cursor.execute(f"INSERT INTO stats_{_message.guild.id} (user, count) VALUES ('{last_user}', '1')")
+                    connection.commit()
+                else:
+                    cursor.execute(f"UPDATE stats_{_message.guild.id} SET count = count + 1 WHERE user = '{last_user}'")
+                    connection.commit()
                 await ctx.message.add_reaction('✅')
                 return
             return
@@ -414,7 +486,7 @@ async def on_message(_message):
 
 # -- Begin Initialization code --
 check_if_table_exists(DbName, 'count_info', count_info_headers)
-create_new_entry(0)
+# create_new_entry(0)
 # t = threading.Timer(0, run_queue)
 # t.start()
 # print("passed_threading")
