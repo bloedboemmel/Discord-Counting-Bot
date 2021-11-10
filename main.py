@@ -3,7 +3,7 @@ import os
 from discord.client import Client
 from dotenv import load_dotenv
 from discord.ext import commands
-from discord import Intents
+from discord import Intents, Embed, Color, guild, message
 from discord.utils import get
 from keys import discord_key
 
@@ -32,6 +32,23 @@ def create_table(dbname, tablename, tableheader):
         return
     except sqlite3.OperationalError:
         return
+
+def time_since(strtime):
+    now = datetime.now()
+    then = datetime.strptime(strtime, '%Y-%m-%d %H:%M:%S.%f')
+    duration = now - then
+    days = duration.days
+    hours = duration.seconds // 3600
+    minutes = (duration.seconds // 60) % 60
+    if days > 0:
+        return f'{days}d ago'
+    elif hours > 0:
+        return f'{hours}h ago'
+    elif minutes > 0:
+        return f'{minutes}m ago'
+    else:
+        return 'just now'
+    
 
 
 def insert_values_into_table(dbname, tablename, values):
@@ -74,20 +91,30 @@ def create_new_entry(guild_id,
     connection.commit()
     return
 
-def update_beertable(guild_id, user, owed_user, count, second_try=False):
+def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
     cursor.execute(f"SELECT * FROM beers_{guild_id} WHERE user = '{user}' AND owed_user = '{owed_user}'")
     temp = cursor.fetchone()
+    if temp is None and spend_beer is True:
+        return False
     if temp is None:
         if second_try is True:
             cursor.execute(f"INSERT INTO beers_{guild_id} (user, owed_user, count) VALUES ('{owed_user}','{user}', '1')")
             connection.commit()
+            return True
         else:
-            update_beertable(guild_id, owed_user, user, -count, second_try=True) #Changed user and owed_user on purpose
+            return update_beertable(guild_id, owed_user, user, -count, second_try=True) #Changed user and owed_user on purpose
         
 
     else:
+        user, owed_user, saved_count = temp
+        if saved_count + count <= 0:
+            cursor.execute(f"DELETE FROM beers_{guild_id} WHERE user = '{user}' AND owed_user = '{owed_user}'")
+            connection.commit()
+            return True, 0
         cursor.execute(f"UPDATE beers_{guild_id} SET count = count + {count} WHERE user = '{user}' AND owed_user = '{owed_user}'")
         connection.commit()
+
+        return True, saved_count + count
 
 def update_stats(guild_id, user, correct_count = True, current_number = 1):
     # stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
@@ -160,6 +187,7 @@ async def wrong_message_error(ctx, error):
         await ctx.send('You need the role "count master" to run that command')
     else:
         raise error
+
 
 
 @bot.command(name='greedy_message')
@@ -280,15 +308,124 @@ async def beer_count(ctx, args1 = ""):
     print("beer_count")
     if args1 == 'me':
         cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} WHERE user = '{ctx.message.author.id}' ORDER BY count DESC")
+        db_restults = cursor.fetchall()
+        str = ""
+        for result in db_restults:
+            user1, user2, count = result
+            if user1 == '' or user2 == '':
+                continue
+            str +=  f"<@{user2}> ows <@{user1}> {count} beers\n"
+        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} WHERE owed_user = '{ctx.message.author.id}' ORDER BY count DESC")
+        db_restults = cursor.fetchall()
+        for result in db_restults:
+            user1, user2, count = result
+            if user1 == '' or user2 == '':
+                continue
+            str += f"<@{user2}> ows <@{user1}> {count} beers\n"
+        await ctx.send(str)
     else:
         cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} ORDER BY count DESC")
-    db_restults = cursor.fetchall()
-    for result in db_restults:
-        user1, user2, count = result
-        if user1 == '' or user2 == '':
-            continue
-        await ctx.send(f"<@{user2}> ows <@{user1}> {count} beers")
+        db_restults = cursor.fetchall()
+        for result in db_restults:
+            user1, user2, count = result
+            if user1 == '' or user2 == '':
+                continue
+            await ctx.send(f"<@{user2}> ows <@{user1}> {count} beers")
 
+@bot.command(name= 'spend_beer')
+async def spend_beer(ctx, args1 = ""):
+    owing_user = args1[args1.find("<@&")+3:args1.find(">")]
+    owing_user = int(owing_user.replace("!", ""))
+    if args1 == 'help' or args1 == "" or owing_user == "":
+        await ctx.send("""
+        `!count spend_beer @user` to register a done forfeit. Make sure to really tag the person
+        """)
+        return
+    if args1 == 'me':
+        await ctx.send("Funny you! I won't count your own drinkung habits")
+        return
+    user = ctx.message.author.id
+    #update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
+   
+    Changed, new_count = update_beertable(ctx.guild.id, owing_user, user, -1, second_try=False, spend_beer=True)
+    if Changed == False:
+        await ctx.send(f"<@{owing_user}> didn't owe you a beer, but it's still great you met up")
+        return
+    if new_count == 0:
+        await ctx.send(f"<@{owing_user}> and you are now all made up!")
+        return
+    await ctx.send(f"Thanks for the info!, <@{owing_user}> now owes <@{user}> {new_count} beers")
+
+@bot.command(name='server')
+async def server(ctx):
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    temp = cursor.fetchone()
+    if temp is None:
+        print("No valid channel")
+        return
+    elif temp[6] != ctx.channel.id:
+        print("Wrong channel for server_stats")
+        return
+    print("server")
+    # count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
+    guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
+    timestr = time_since(record_timestamp)
+    if last_user == '':
+        last_user = 'None'
+    else:
+        last_user = f"<@{last_user}>"
+    message = f"`Current count:` {count}\n"
+    message += f"`Last counted by` {last_user}\n"
+    message += f"`High Score:` {highscore} ({timestr})\n"
+    message += f"`Counted by` <@{record_user}>\n"
+    embed=Embed(title=f"Stats for {ctx.guild.name}", 
+                description=message)    
+    embed.set_footer(text=f"{PREFIX}help")
+    await ctx.send(embed=embed)
+    
+@bot.command(name='user')
+async def user(ctx, arg1 = ""):
+    if arg1 == "":
+        user = ctx.message.author.id
+        username = ctx.message.author.name
+        message =""
+    else:
+        users = ctx.message.channel.members
+        user = None
+        for use in users:
+            if use.name.lower() == arg1.lower() or (use.nick is not None and use.nick.lower() == arg1.lower()):
+                user = use.id
+                username = use.name
+                break
+        
+        if user is None:
+            await ctx.send("User not found, check your spelling!")
+            return
+        message = f"Are you even there? <@{user}>\n"
+    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} WHERE user = '{user}'")
+    temp = cursor.fetchone()
+    if temp is None:
+        if arg1 == "":
+            await ctx.send(f"<@{user}, you should try counting first!")
+        else:
+            await ctx.send(f"<@{user}> has to learn counting first and is revisiting school")
+        return
+    else:
+     #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
+        user, count_correct, count_wrong, highest_valid_count, last_activity = temp
+        percent_correct = round(count_correct / (count_correct + count_wrong) * 100, 2)
+        message += f"`Count Correct:` {count_correct}\n"
+        message += f"`Count Wrong:` {count_wrong}\n"
+        message += f"`Percentage Correct:` {percent_correct} %\n"
+        message += f"`Highest Valid Count:` {highest_valid_count}\n"
+        message += f"`Last Activity:` {time_since(last_activity)}"
+        embed = Embed(title=f"Stats for {username}", 
+                      description=message)
+        embed.set_footer(text=f"{PREFIX}help")
+        await ctx.send(embed=embed)
+       
+
+    
 @bot.command(name='highscore')
 async def highscore(ctx):
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
@@ -300,22 +437,24 @@ async def highscore(ctx):
         print("Wrong channel for highscore")
         return
     print("highscore")
-    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} ORDER BY count DESC")
+    #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
+    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} ORDER BY count_correct DESC")
     db_restults = cursor.fetchall()
     i = 1
     for result in db_restults:
-        user1, count = result
+        user1, count_correct, count_wrong, highest_valid_count, last_activity = result
         if user1 == '':
             continue
-        await ctx.send(f"<@{user1}>: {count}")
+        await ctx.send(f"<@{user1}>: {count_correct}")
         if i == 10:
             break
         i += 1
 
 
 # -- Begin Edit Detection --
+## doesn't work yet...........
 @bot.event
-async def on_message_edit(before, after):
+async def on_message_delete(ctx):
     if before.content != after.content:
         if 'substring' in after.content:
             print("Thats son of a bitch edited!")
