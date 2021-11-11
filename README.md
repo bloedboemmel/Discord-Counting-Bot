@@ -1,12 +1,44 @@
-# Discord Counting Bot 
-### A fun little game for your discord server
-#### Setup Instructions:
-Add the bot to your server using the following link: [https://discord.com/api/oauth2/authorize?client_id=764432909011517491&permissions=116736&scope=bot](https://discord.com/api/oauth2/authorize?client_id=764432909011517491&permissions=116736&scope=bot)  
-You will need to have the `count master` role to use the management commands for this bot.  
-To setup the bot, first go into the channel that you want to count in and run `!count counting_channel this_channel`  
-You can also setup a separate channel to keep a log of who has got the count wrong by running `!count log_channel this_channel`, otherwise it will use the counting channel.  
-To setup custom messages you can run `!count wrong_message your_message` for the message that is sent when someone enters the wrong number, and `!count greedy_message your_message` for the message that is sent when someone types 2 messages in a row in the counting channel.  
-Both commands will replace `{{{user}}}` with the username of whoever made the mistake, eg. `!count wrong_message {{{user}}} couldn't keep count` will result in the message "JohnS#1000 couldn't keep count"
-#### Usage instructions:  
-It's pretty straight forward, you just count up starting from 1 until someone makes a mistake and the count is reset, eg. you type `1`, a friend types `2`, you type `3`, and so on.  
-Anything after the first space is ignored, so typing `1 hello` is the same as typing `1`
+# Discord Counting Bot with Beer-Counter
+### Heavily inspired by [AlexVerricos Counting_bot](https://github.com/AlexVerrico/Discord-Counting-Bot), but adjusted a lot for the beer drinking habits of students.
+
+## How to install and run
+1. Make sure you’re logged on to the [Discord website](https://discord.com/).
+2. Navigate to the [application page](https://discordapp.com/developers/applications/)
+3. Click on the “New Application” button.
+4. Fill out the form and click on “Create Application”.
+5. Go to the “Bot” tab and then click “Add Bot”. You will have to confirm by clicking "Yes, do it!"
+6. Copy the token and paste it into the `token` variable below.
+7. Activate OAuth2 to invite the bot to your server.
+8. Install with:
+```	
+pip install -r requirements.txt
+export THE_COUNT_DISCORD_TOKEN=<your_discord_bot_token>
+python3 main.py
+```
+
+## How to start
+You need admin rights to set up the bot:
+This bot reacts to the Prefix `!count`
+In the channel you want to start counting, type `!count counting_channel this_channel`
+Alternatively, you can use `!count counting_channel your_favorite_channel`
+Same goes for the logging_channel, which also reacts to any user-commands (`!count log_channel this_channel`)
+And thats it!
+
+## Implemented Bot_Commands
+`!count server` - Shows stats for the server
+`!count highscore` - Shows the top 10 users with the most correctly counted numbers
+`!count user` - Shows stats for you
+`!count user @user` - Shows stats for mentioned user
+
+`!count beer_count` - Gets the current beer-debt-table for this guild
+`!count beer_count me` - Gets the current beer-debt-table for this user
+`!count spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts
+
+## To be implemented
+`!count high_count` - Shows the top 10 users with the highest counted numbers
+`!count set_drink` - Sets your favorite drink
+`!count delete_me` - Deletes your account from the server stats, but not from the beer-debts
+`!count copy_info` - Copies your stats from the the Counting Bot to this bot
+
+React with "SHAME"-Emojis if someone was greedy
+

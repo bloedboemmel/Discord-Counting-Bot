@@ -2,3 +2,5 @@ venv
 .idea
 count.sqlite
 .env
+key.py
+__pycache__/
