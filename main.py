@@ -11,6 +11,9 @@ from datetime import datetime
 intents = Intents(messages=True, guilds=True)
 load_dotenv()
 TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
+if TOKEN is None:
+    print("Please set the TOKEN variable in the Environment")
+    exit()
 #TOKEN = discord_key()
 #PREFIX = "".join((os.getenv('THE_COUNT_PREFIX'), ' '))
 PREFIX = "!count "
@@ -18,8 +21,8 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 DbName = 'count.sqlite'
 count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
-stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink']
-beer_headers = ['user', 'owed_user', 'count']
+stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink']
+beer_headers = ['guild_id','user', 'owed_user', 'count']
 connection = sqlite3.connect(DbName)
 cursor = connection.cursor()
 
@@ -85,20 +88,19 @@ def create_new_entry(guild_id,
         str(0),
         str(0)]
     # ])
-    check_if_table_exists(DbName, f'stats_{guild_id}', stat_headers)
-    check_if_table_exists(DbName, f'beers_{guild_id}', beer_headers)
+    
     cursor.execute("INSERT INTO count_info %s VALUES %s" % (tuple(count_info_headers), tuple(temp1)))
     connection.commit()
     return
 
 def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
-    cursor.execute(f"SELECT * FROM beers_{guild_id} WHERE user = '{user}' AND owed_user = '{owed_user}'")
+    cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{guild_id}' AND user = '{user}' AND owed_user = '{owed_user}'")
     temp = cursor.fetchone()
     if temp is None and spend_beer is True:
         return False
     if temp is None:
         if second_try is True:
-            cursor.execute(f"INSERT INTO beers_{guild_id} (user, owed_user, count) VALUES ('{owed_user}','{user}', '1')")
+            cursor.execute(f"INSERT INTO beers (guild_id, user, owed_user, count) VALUES ('{guild_id}', '{owed_user}','{user}', '1')")
             connection.commit()
             return True
         else:
@@ -106,45 +108,44 @@ def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_b
         
 
     else:
-        user, owed_user, saved_count = temp
-        if saved_count + count <= 0:
-            cursor.execute(f"DELETE FROM beers_{guild_id} WHERE user = '{user}' AND owed_user = '{owed_user}'")
+        guild_id, user, owed_user, saved_count = temp
+        if int(saved_count) + int(count) <= 0:
+            cursor.execute(f"DELETE FROM beers WHERE  guild_id = '{guild_id}' AND user = '{user}' AND owed_user = '{owed_user}'")
             connection.commit()
             return True, 0
-        cursor.execute(f"UPDATE beers_{guild_id} SET count = count + {count} WHERE user = '{user}' AND owed_user = '{owed_user}'")
+        cursor.execute(f"UPDATE beers SET count = count + {count} WHERE guild_id = '{guild_id}' AND user = '{user}' AND owed_user = '{owed_user}'")
         connection.commit()
 
-        return True, saved_count + count
+        return True, int(saved_count) + int(count)
 
 def update_stats(guild_id, user, correct_count = True, current_number = 1, drink = ""):
-    # stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
+    # stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
     
-    cursor.execute(f"SELECT * FROM stats_{guild_id} WHERE user = '{user}'")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{guild_id}' AND user = '{user}'")
     temp = cursor.fetchone()
     last_activity = datetime.now() 
-    if drink != "":
-        if temp is None:
-            if correct_count is True:
-                cursor.execute(f"INSERT INTO stats_{guild_id} (user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{user}', '1', '0', '{current_number}', '{last_activity}', 'beer')")
-            else:
-                cursor.execute(f"INSERT INTO stats_{guild_id} (user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{user}', '0', '1', '{current_number}', '{last_activity}', 'beer')")
-            connection.commit()
+    
+    if temp is None:
+        if drink == "":
+            drink = "beer"
+        if correct_count is True:
+            cursor.execute(f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{guild_id}', '{user}', '1', '0', '{current_number}', '{last_activity}', '{drink}')")
         else:
-            highest_valid_count = temp[3]
-            if current_number > int(highest_valid_count):
-                highest_valid_count = str(current_number)
-            if correct_count is True:
-                cursor.execute(f"UPDATE stats_{guild_id} SET count_correct = count_correct + 1, highest_valid_count = ?, last_activity = ? WHERE user = '{user}'", (highest_valid_count, last_activity,))
-            else:
-                cursor.execute(f"UPDATE stats_{guild_id} SET count_wrong = count_wrong + 1, last_activity = ? WHERE user = '{user}'", (last_activity,))
-            connection.commit()
+            cursor.execute(f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{guild_id}', '{user}', '0', '1', '{current_number}', '{last_activity}', '{drink}')")
+        connection.commit()
     else:
-        if temp is None:
-            cursor.execute(f"INSERT INTO stats_{guild_id} (user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{user}', '0', '0', '0', '{last_activity}', '{drink}')")
-            connection.commit()
+        highest_valid_count = temp[3]
+        if current_number > int(highest_valid_count):
+            highest_valid_count = str(current_number)
+        if correct_count is True:
+            cursor.execute(f"UPDATE stats SET count_correct = count_correct + 1, highest_valid_count = ?, last_activity = ? WHERE guild_id = '{guild_id}' AND user = '{user}'", (highest_valid_count, last_activity,))
         else:
-            cursor.execute(f"UPDATE stats_{guild_id} SET drink = ? WHERE user = '{user}'", (drink,))
+            cursor.execute(f"UPDATE stats SET count_wrong = count_wrong + 1, last_activity = ? WHERE guild_id = '{guild_id}' AND user = '{user}'", (last_activity,))
+        connection.commit()
+        if drink != "":
+            cursor.execute(f"UPDATE stats SET drink = '{drink}' WHERE guild_id = '{guild_id}' AND user = '{user}'")
             connection.commit()
+    
 
 def update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp,  table_name='count_info'):
     cursor.execute(f"UPDATE {table_name} SET guild_id = ?, current_count = ?, number_of_resets = ?, last_user = ?, message = ?, channel_id = ?, log_channel_id = ?, greedy_message = ?, record = ?, record_user = ?, record_timestamp = ? WHERE guild_id = '{guild_id}'", (guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message,record, record_user, record_timestamp, )) 
@@ -158,8 +159,24 @@ bot.remove_command('help')
 
 @bot.command(name='help')
 async def count_help(ctx):
-    response = """See https://github.com/bloedboemmel/Discord-Counting-Bot for detailed help info"""
-    await ctx.send(response)
+    embed=Embed(title="Counting Bot", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
+     description="All commands",
+    color=Color.purple())
+    embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
+    message = f"`{PREFIX} counting_channel this_channel` to check the counting in this channel\n"
+    message += f"`{PREFIX} counting_channel @other_channel` to set the counting channel to another one\n"
+    message += f"`{PREFIX} log_channel this_channel` to set the log channel\n"
+    embed.add_field(name="Admin-Commands", value=message, inline=False)
+    message = f"`{PREFIX} server` - Shows stats for the server\n"
+    message += f"`{PREFIX} highscore` - Shows the top 10 users with the most correctly counted numbers\n"
+    message += f"`{PREFIX} user` - Shows stats for yourself\n"
+    message += f"`{PREFIX} user @user` - Shows stats for different user\n"
+    message += f"`{PREFIX} beer_count` - Gets the current beer-debt-table for this guild"
+    message += f"`{PREFIX} beer_count me` - Gets the current beer-debt-table for this guild, where you are involved"
+    message += f"`{PREFIX} spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts"
+    embed.add_field(name="User-Commands", value=message, inline=False)
+    embed.set_footer(text= f"{PREFIX} help")
+    await ctx.send(embed=embed)
     return
 
 
@@ -237,9 +254,9 @@ async def counting_channel(ctx, arg1):
     #print("counting_channel")
     channel_id = arg1
     if channel_id == 'help':
-        response = """
+        response = f"""
             Set the id of the channel that you want to count in
-use `!count counting_channel this_channel` to use the channel that you are typing in
+use `{PREFIX} counting_channel this_channel` to use the channel that you are typing in
             """
         await ctx.send(response)
         return
@@ -273,9 +290,9 @@ async def log_channel(ctx, arg1):
     #print("log_channel")
     channel_id = arg1
     if channel_id == 'help':
-        response = """
+        response = f"""
             Set the id of the channel that you want to log mistakes too
-use `!count log_channel this_channel` to use the channel that you are typing in
+use `{PREFIX} log_channel this_channel` to use the channel that you are typing in
             """
         await ctx.send(response)
         return
@@ -315,7 +332,7 @@ async def beer_count(ctx, args1 = ""):
         return
     #print("beer_count")
     if args1 == 'me':
-        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} WHERE user = '{ctx.message.author.id}' ORDER BY count DESC")
+        cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}' ORDER BY count DESC")
         db_restults = cursor.fetchall()
         str = ""
         for result in db_restults:
@@ -323,19 +340,19 @@ async def beer_count(ctx, args1 = ""):
             if user1 == '' or user2 == '':
                 continue
             str +=  f"<@{user2}> ows <@{user1}> {count} beers\n"
-        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} WHERE owed_user = '{ctx.message.author.id}' ORDER BY count DESC")
+        cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' AND owed_user = '{ctx.message.author.id}' ORDER BY count DESC")
         db_restults = cursor.fetchall()
         for result in db_restults:
-            user1, user2, count = result
+            guild_id, user1, user2, count = result
             if user1 == '' or user2 == '':
                 continue
             str += f"<@{user2}> ows <@{user1}> {count} beers\n"
         await ctx.send(str)
     else:
-        cursor.execute(f"SELECT * FROM beers_{ctx.guild.id} ORDER BY count DESC")
+        cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' ORDER BY count DESC")
         db_restults = cursor.fetchall()
         for result in db_restults:
-            user1, user2, count = result
+            guild_id, user1, user2, count = result
             if user1 == '' or user2 == '':
                 continue
             await ctx.send(f"<@{user2}> ows <@{user1}> {count} beers")
@@ -345,8 +362,8 @@ async def spend_beer(ctx, args1 = ""):
     owing_user = args1[args1.find("<@&")+3:args1.find(">")]
     owing_user = int(owing_user.replace("!", ""))
     if args1 == 'help' or args1 == "" or owing_user == "":
-        await ctx.send("""
-        `!count spend_beer @user` to register a done forfeit. Make sure to really tag the person
+        await ctx.send(f"""
+        `{PREFIX} spend_beer @user` to register a done forfeit. Make sure to really tag the person
         """)
         return
     if args1 == 'me':
@@ -401,7 +418,7 @@ async def user(ctx, arg1 = ""):
         user = arg1[arg1.find("<@&")+3:arg1.find(">")]
         user = int(user.replace("!", ""))
         message = f"Are you even there? <@{user}>\n"
-    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} WHERE user = '{user}'")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{user}'")
     temp = cursor.fetchone()
     if temp is None:
         if arg1 == "":
@@ -411,8 +428,8 @@ async def user(ctx, arg1 = ""):
         return
     else:
      #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
-        user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
-        percent_correct = round(count_correct / (count_correct + count_wrong) * 100, 2)
+        guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+        percent_correct = round(int(count_correct) / (int(count_correct) + int(count_wrong)) * 100, 2)
         message += f"`Count Correct:` {count_correct}\n"
         message += f"`Count Wrong:` {count_wrong}\n"
         message += f"`Percentage Correct:` {percent_correct} %\n"
@@ -438,7 +455,7 @@ async def highscore(ctx):
         return
     #print("highscore")
     #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
-    cursor.execute(f"SELECT * FROM stats_{ctx.guild.id} ORDER BY count_correct DESC")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
     db_restults = cursor.fetchall()
     i = 1
     for result in db_restults:
@@ -540,5 +557,7 @@ async def on_message(_message):
 
 # -- Begin Initialization code --
 check_if_table_exists(DbName, 'count_info', count_info_headers)
+check_if_table_exists(DbName, f'stats', stat_headers)
+check_if_table_exists(DbName, f'beers', beer_headers)
 bot.run(TOKEN)
 # -- End Initialization code --
