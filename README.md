@@ -18,27 +18,43 @@ python3 main.py
 
 ## How to start
 You need admin rights to set up the bot:
+
 This bot reacts to the Prefix `!count`
+
 In the channel you want to start counting, type `!count counting_channel this_channel`
+
 Alternatively, you can use `!count counting_channel your_favorite_channel`
+
 Same goes for the logging_channel, which also reacts to any user-commands (`!count log_channel this_channel`)
-And thats it!
+
+### And thats it!
 
 ## Implemented Bot_Commands
 `!count server` - Shows stats for the server
+
 `!count highscore` - Shows the top 10 users with the most correctly counted numbers
+
 `!count user` - Shows stats for you
+
 `!count user @user` - Shows stats for mentioned user
 
+
 `!count beer_count` - Gets the current beer-debt-table for this guild
+
 `!count beer_count me` - Gets the current beer-debt-table for this user
+
 `!count spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts
 
 ## To be implemented
 `!count high_count` - Shows the top 10 users with the highest counted numbers
+
 `!count set_drink` - Sets your favorite drink
+
 `!count delete_me` - Deletes your account from the server stats, but not from the beer-debts
+
 `!count copy_info` - Copies your stats from the the Counting Bot to this bot
 
-React with "SHAME"-Emojis if someone was greedy
+Bot should react to edited messages.
+
+Dockerfile to run the bot
 
