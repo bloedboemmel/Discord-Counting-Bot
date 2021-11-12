@@ -34,6 +34,10 @@ Same goes for the logging_channel, which also reacts to any user-commands (`!cou
 
 `!count highscore` - Shows the top 10 users with the most correctly counted numbers
 
+`!count highcount` - Shows the top 10 users with the highest counted numbers
+
+`!count set_drink` - Sets your favorite drink
+
 `!count user` - Shows stats for you
 
 `!count user @user` - Shows stats for mentioned user
@@ -45,12 +49,9 @@ Same goes for the logging_channel, which also reacts to any user-commands (`!cou
 
 `!count spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts
 
-## To be implemented
-`!count high_count` - Shows the top 10 users with the highest counted numbers
-
-`!count set_drink` - Sets your favorite drink
-
 `!count delete_me` - Deletes your account from the server stats, but not from the beer-debts
+
+## To be implemented
 
 `!count copy_info` - Copies your stats from the the Counting Bot to this bot
 

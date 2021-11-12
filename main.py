@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from discord import Intents, Embed, Color, guild, message
 from discord.utils import get
-#from keys import discord_key
 
 from datetime import datetime
 intents = Intents(messages=True, guilds=True)
@@ -14,7 +13,7 @@ TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
 if TOKEN is None:
     print("Please set the TOKEN variable in the Environment")
     exit()
-#TOKEN = discord_key()
+    
 #PREFIX = "".join((os.getenv('THE_COUNT_PREFIX'), ' '))
 PREFIX = "!count "
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
@@ -169,11 +168,13 @@ async def count_help(ctx):
     embed.add_field(name="Admin-Commands", value=message, inline=False)
     message = f"`{PREFIX} server` - Shows stats for the server\n"
     message += f"`{PREFIX} highscore` - Shows the top 10 users with the most correctly counted numbers\n"
+    message += f"`{PREFIX} highcount` - Shows the top 10 users with the highest counted numbers\n"
     message += f"`{PREFIX} user` - Shows stats for yourself\n"
     message += f"`{PREFIX} user @user` - Shows stats for different user\n"
     message += f"`{PREFIX} beer_count` - Gets the current beer-debt-table for this guild"
     message += f"`{PREFIX} beer_count me` - Gets the current beer-debt-table for this guild, where you are involved"
     message += f"`{PREFIX} spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts"
+    message += f"`{PREFIX} set_drink` - Your favorite drink is not beer? No problem, weirdo!"
     embed.add_field(name="User-Commands", value=message, inline=False)
     embed.set_footer(text= f"{PREFIX} help")
     await ctx.send(embed=embed)
@@ -333,29 +334,36 @@ async def beer_count(ctx, args1 = ""):
     #print("beer_count")
     if args1 == 'me':
         cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}' ORDER BY count DESC")
-        db_restults = cursor.fetchall()
-        str = ""
-        for result in db_restults:
-            user1, user2, count = result
-            if user1 == '' or user2 == '':
-                continue
-            str +=  f"<@{user2}> ows <@{user1}> {count} beers\n"
-        cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' AND owed_user = '{ctx.message.author.id}' ORDER BY count DESC")
-        db_restults = cursor.fetchall()
-        for result in db_restults:
-            guild_id, user1, user2, count = result
-            if user1 == '' or user2 == '':
-                continue
-            str += f"<@{user2}> ows <@{user1}> {count} beers\n"
-        await ctx.send(str)
+        db_results = cursor.fetchall()
     else:
         cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' ORDER BY count DESC")
-        db_restults = cursor.fetchall()
-        for result in db_restults:
-            guild_id, user1, user2, count = result
-            if user1 == '' or user2 == '':
-                continue
-            await ctx.send(f"<@{user2}> ows <@{user1}> {count} beers")
+        db_results = cursor.fetchall()
+    if db_results == [] and args1 == 'me':
+        await ctx.send(f"{ctx.message.author.mention} has not won any drinks yet")
+        return
+    if db_results == []:
+        await ctx.send("No one has won any drinks yet")
+        return
+    
+    str = ""
+    for result in db_results:
+        guild_id, user1, user2, count = result
+        if user1 == '' or user2 == '':
+            continue
+        cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{user1}'")
+        temp = cursor.fetchone()
+        if temp is None:
+            drink = "beer"
+        else:
+            guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+
+        str +=  f"<@{user2}> ows <@{user1}> {count} {drink}s\n"
+    
+    if str != "":
+        embed = Embed(title=f"Drink Table for {ctx.guild.name}", description=str, color=Color.dark_gold())
+        embed.set_footer(text=f"{PREFIX}help")
+        await ctx.send(embed=embed)
+    
 
 @bot.command(name= 'spend_beer')
 async def spend_beer(ctx, args1 = ""):
@@ -454,19 +462,65 @@ async def highscore(ctx):
         #print("Wrong channel for highscore")
         return
     #print("highscore")
-    #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
-    db_restults = cursor.fetchall()
+    db_results = cursor.fetchall()
     i = 1
-    for result in db_restults:
-        user1, count_correct, count_wrong, highest_valid_count, last_activity, drink = result
+    message = ""
+    for result in db_results:
+        guild_id, user1, count_correct, count_wrong, highest_valid_count, last_activity, drink = result
         if user1 == '':
             continue
-        await ctx.send(f"<@{user1}>: {count_correct}")
+        message += f"<@{user1}>: {count_correct}\n"
         if i == 10:
             break
         i += 1
+    if i > 1:
+        embed = Embed(title=f"Top 10 for {ctx.guild.name}", 
+                      description=message, color=Color.green())
+        embed.set_footer(text=f"{PREFIX}help")
+        await ctx.send(embed=embed)
 
+@bot.command(name='highcount')
+async def highcount(ctx):
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY highest_valid_count DESC")
+    db_results = cursor.fetchall()
+    i = 1
+    message = ""
+    for result in db_results:
+        guild_id, user1, count_correct, count_wrong, highest_valid_count, last_activity, drink = result
+        if user1 == '':
+            continue
+        message += f"<@{user1}>: {highest_valid_count}\n"
+        if i == 10:
+            break
+        i += 1
+    if i > 1:
+        embed = Embed(title=f"10 highest Counters for {ctx.guild.name}", 
+                      description=message, color=Color.green())
+        embed.set_footer(text=f"{PREFIX}help")
+        await ctx.send(embed=embed)
+
+@bot.command(name='set_drink')
+async def set_drink(ctx, arg1 = ""):
+    if arg1 == "":
+        await ctx.send("Please specify a drink")
+        return
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
+    temp = cursor.fetchone()
+    if temp is None:
+        await ctx.send("You have to count first!")
+        return
+    else:
+        cursor.execute(f"UPDATE stats SET drink = '{arg1}' WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
+        connection.commit()
+        await ctx.send(f"{ctx.author.name}'s favorite drink is now {arg1}")
+
+@bot.command(name='delete_me')
+async def delete_me(ctx):
+    cursor.execute(f"DELETE FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
+    connection.commit()
+    await ctx.add_reaction("😞")
+    await ctx.send(f"{ctx.author.name} has been deleted from the database")
 
 # -- Begin Edit Detection --
 ## doesn't work yet...........
@@ -485,6 +539,14 @@ async def on_message(_message):
     if str(_message.content).startswith(str(PREFIX)):
         await bot.invoke(ctx)
         return
+    try:
+        current_count, trash = _message.content.split(' ', 1)
+    except ValueError:
+        current_count = _message.content
+    try:     
+        current_count = int(current_count)
+    except ValueError:
+        return
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % _message.guild.id)
     temp = cursor.fetchone()
     if temp is None:
@@ -495,11 +557,6 @@ async def on_message(_message):
         if str(temp[5]) != str(ctx.channel.id):
             return
         else:
-            try:
-                current_count, trash = _message.content.split(' ', 1)
-            except ValueError:
-                current_count = _message.content
-            current_count = int(current_count)
             old_count = int(temp[1])
             if str(ctx.message.author.id) == str(temp[3] +"test"): #"test" is only for test-purposes
                 #print("greedy")
