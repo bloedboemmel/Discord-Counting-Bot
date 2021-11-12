@@ -4,3 +4,5 @@ count.sqlite
 .env
 key.py
 __pycache__/
+.vscode/tasks.json
+.vscode/launch.json

@@ -56,5 +56,9 @@ Same goes for the logging_channel, which also reacts to any user-commands (`!cou
 
 Bot should react to edited messages.
 
-Dockerfile to run the bot
+# Run in docker
+```	
+docker-compose build
+docker run --env THE_COUNT_DISCORD_TOKEN=<YOUR_VERY_OWN_DISCORDTOKEN> discord-counting-bot_countingbot:latest
+```
 
