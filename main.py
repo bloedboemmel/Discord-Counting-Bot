@@ -558,7 +558,7 @@ async def on_message(_message):
             return
         else:
             old_count = int(temp[1])
-            if str(ctx.message.author.id) == str(temp[3] +"test"): #"test" is only for test-purposes
+            if str(ctx.message.author.id) == str(temp[3]):
                 #print("greedy")
                 guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
                 count = str(0)
