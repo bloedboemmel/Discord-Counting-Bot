@@ -589,11 +589,11 @@ async def on_message(_message):
                 channel = bot.get_channel(int(temp[6]))
                 
                 await ctx.message.add_reaction('❌')
-                if old_count != 0:
+                if old_count != 0 and old_last_user != '':
                     await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
-                #if beers_last_user == old_last_user:
-                #    return
                     update_beertable(guild_id, beers_last_user, old_last_user, +1)
+                
+                    
                 update_stats(guild_id, beers_last_user, correct_count=False)
                 return
             if old_count + 1 == current_count:
