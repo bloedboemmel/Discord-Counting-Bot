@@ -400,6 +400,11 @@ async def server(ctx):
         return
     #print("server")
     # count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    temp = cursor.fetchone()
+    if temp is None:
+        return
+    
     guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
     timestr = time_since(record_timestamp)
     if last_user == '':
@@ -408,7 +413,7 @@ async def server(ctx):
         last_user = f"<@{last_user}>"
     message = f"`Current count:` {count}\n"
     message += f"`Last counted by` {last_user}\n"
-    message += f"`High Score:` {highscore} ({timestr})\n"
+    message += f"`High Score:` {record} ({timestr})\n"
     message += f"`Counted by` <@{record_user}>\n"
     embed=Embed(title=f"Stats for {ctx.guild.name}", 
                 description=message)    
@@ -631,7 +636,7 @@ async def on_message(_message):
                 await ctx.message.add_reaction('❌')
                 if old_count != 0 and old_last_user != '':
                     await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
-                    update_beertable(guild_id, beers_last_user, old_last_user, +1)
+                    update_beertable(guild_id, old_last_user, beers_last_user,  +1)
                 
                     
                 update_stats(guild_id, beers_last_user, correct_count=False)
@@ -645,9 +650,13 @@ async def on_message(_message):
                     record = count
                     record_user = str(ctx.message.author.id)
                     record_timestamp = datetime.now()
+                    await ctx.message.add_reaction('☑️')
+                else:
+                    await ctx.message.add_reaction('✅')
+
                 update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp)
                 update_stats(guild_id, ctx.message.author.id, current_number= current_count)
-                await ctx.message.add_reaction('✅')
+                
                 return
             return
 
