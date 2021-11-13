@@ -51,7 +51,7 @@ Same goes for the logging_channel, which also reacts to any user-commands (`!cou
 
 `!count delete_me` - Deletes your account from the server stats, but not from the beer-debts
 
-`!count copy_info` - Copies your stats from the the Counting Bot to this bot
+`!count copy_data` - Copies your stats from the the Counting Bot to this bot
 
 ## To be implemented
 

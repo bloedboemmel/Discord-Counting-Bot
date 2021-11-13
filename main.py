@@ -172,19 +172,21 @@ async def count_help(ctx):
      description="All commands",
     color=Color.purple())
     embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
-    message = f"`{PREFIX} counting_channel this_channel` to check the counting in this channel\n"
-    message += f"`{PREFIX} counting_channel @other_channel` to set the counting channel to another one\n"
-    message += f"`{PREFIX} log_channel this_channel` to set the log channel\n"
+    message = f"`{PREFIX}counting_channel this_channel` to check the counting in this channel\n"
+    message += f"`{PREFIX}counting_channel @other_channel` to set the counting channel to another one\n"
+    message += f"`{PREFIX}log_channel this_channel` to set the log channel\n"
     embed.add_field(name="Admin-Commands", value=message, inline=False)
-    message = f"`{PREFIX} server` - Shows stats for the server\n"
-    message += f"`{PREFIX} highscore` - Shows the top 10 users with the most correctly counted numbers\n"
-    message += f"`{PREFIX} highcount` - Shows the top 10 users with the highest counted numbers\n"
-    message += f"`{PREFIX} user` - Shows stats for yourself\n"
-    message += f"`{PREFIX} user @user` - Shows stats for different user\n"
-    message += f"`{PREFIX} beer_count` - Gets the current beer-debt-table for this guild\n"
-    message += f"`{PREFIX} beer_count me` - Gets the current beer-debt-table for this guild, where you are involved\n"
-    message += f"`{PREFIX} spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts\n"
-    message += f"`{PREFIX} set_drink` - Your favorite drink is not beer? No problem, weirdo!\n"
+    message = f"`{PREFIX}server` - Shows stats for the server\n"
+    message += f"`{PREFIX}highscore` - Shows the top 10 users with the most correctly counted numbers\n"
+    message += f"`{PREFIX}highcount` - Shows the top 10 users with the highest counted numbers\n"
+    message += f"`{PREFIX}user` - Shows stats for yourself\n"
+    message += f"`{PREFIX}user @user` - Shows stats for different user\n"
+    message += f"`{PREFIX}beer_count` - Gets the current beer-debt-table for this guild\n"
+    message += f"`{PREFIX}beer_count me` - Gets the current beer-debt-table for this guild, where you are involved\n"
+    message += f"`{PREFIX}spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts\n"
+    message += f"`{PREFIX}set_drink` - Your favorite drink is not beer? No problem, weirdo!\n"
+    message += f"`{PREFIX}copy_data message_id` - Copies data from the original counting bot\n"
+    message += f"`{PREFIX}delete_me` Deletes yourself from the stats"
     embed.add_field(name="User-Commands", value=message, inline=False)
     embed.set_footer(text= f"{PREFIX} help")
     await ctx.send(embed=embed)
@@ -267,7 +269,7 @@ async def counting_channel(ctx, arg1):
     if channel_id == 'help':
         response = f"""
             Set the id of the channel that you want to count in
-use `{PREFIX} counting_channel this_channel` to use the channel that you are typing in
+use `{PREFIX}counting_channel this_channel` to use the channel that you are typing in
             """
         await ctx.send(response)
         return
@@ -303,7 +305,7 @@ async def log_channel(ctx, arg1):
     if channel_id == 'help':
         response = f"""
             Set the id of the channel that you want to log mistakes too
-use `{PREFIX} log_channel this_channel` to use the channel that you are typing in
+use `{PREFIX}log_channel this_channel` to use the channel that you are typing in
             """
         await ctx.send(response)
         return
@@ -377,7 +379,7 @@ async def spend_beer(ctx, args1 = ""):
     owing_user = int(owing_user.replace("!", ""))
     if args1 == 'help' or args1 == "" or owing_user == "":
         await ctx.send(f"""
-        `{PREFIX} spend_beer @user` to register a done forfeit. Make sure to really tag the person
+        `{PREFIX}spend_beer @user` to register a done forfeit. Make sure to really tag the person
         """)
         return
     if args1 == 'me':
@@ -541,7 +543,7 @@ async def copy_data(ctx, arg1 = ""):
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     temp = cursor.fetchone()
     if temp is not None:
-        await ctx.send(f"This works only if you delete yourself first with `{PREFIX} delete_me`")
+        await ctx.send(f"This works only if you delete yourself first with `{PREFIX}delete_me`")
         return
     counting_bot_mssg = await ctx.channel.fetch_message(int(arg1))
     try: 
@@ -562,7 +564,7 @@ async def copy_data(ctx, arg1 = ""):
         last_activity = datetime.now()
         cursor.execute(f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{ctx.guild.id}', '{ctx.author.id}', '{total_correct}', '{total_wrong}', '{highest_valid_count}', '{last_activity}', 'beer')")
         connection.commit()
-        await ctx.send(f"{ctx.author.name}, welcome to the Party\n<@{counting_bot_mssg.author.id}> is too stupid to save your favorite drink. Pls set it with `{PREFIX} set_drink`")
+        await ctx.send(f"{ctx.author.name}, welcome to the Party\n<@{counting_bot_mssg.author.id}> is too stupid to save your favorite drink. Pls set it with `{PREFIX}set_drink`")
     except:
         embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
             description="Something went utterly wrong! But a Nerd is fixing it right away. Are you yourself a nerd? Just help at the github-repo!", color=Color.red())
@@ -592,7 +594,7 @@ async def on_message_edit(before, after):
         if int(last_user) != int(after.author.id) or changed_count != int(old_count):
             return
         await after.add_reaction('😡')
-        await after.reply(f"Wait, <@{after.author.id}> edited his message. Next number is {old_count +1}")
+        await after.reply(f"Wait, <@{after.author.id}> edited this message. Next number is {str(int(old_count) +1)}")
 
 @bot.event
 async def on_message_delete(message):
@@ -612,7 +614,7 @@ async def on_message_delete(message):
     guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
     if int(last_user) != int(message.author.id) or changed_count != int(old_count):
         return
-    await message.channel.send(f"Hold on, <@{message.author.id}> deleted his message. Next number is {int(old_count) +1}")
+    await message.channel.send(f"Hold on, <@{message.author.id}> deleted an important message. Next number is {int(old_count) +1}")
 
 # -- Begin counting detection --
 @bot.event
