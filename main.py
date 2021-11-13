@@ -105,12 +105,12 @@ def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_b
     cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{guild_id}' AND user = '{user}' AND owed_user = '{owed_user}'")
     temp = cursor.fetchone()
     if temp is None and spend_beer is True:
-        return False
+        return False, 0
     if temp is None:
         if second_try is True:
             cursor.execute(f"INSERT INTO beers (guild_id, user, owed_user, count) VALUES ('{guild_id}', '{owed_user}','{user}', '1')")
             connection.commit()
-            return True
+            return True, 1
         else:
             return update_beertable(guild_id, owed_user, user, -count, second_try=True) #Changed user and owed_user on purpose
         
@@ -385,7 +385,7 @@ async def spend_beer(ctx, args1 = ""):
     user = ctx.message.author.id
     #update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
    
-    Changed, new_count = update_beertable(ctx.guild.id, owing_user, user, -1, second_try=False, spend_beer=True)
+    Changed, new_count = update_beertable(ctx.guild.id, user, owing_user, -1, second_try=False, spend_beer=True)
     if Changed == False:
         await ctx.send(f"<@{owing_user}> didn't owe you a beer, but it's still great you met up")
         return
@@ -428,9 +428,11 @@ async def user(ctx, arg1 = ""):
         user = ctx.message.author.id
         username = ctx.message.author.name
         message =""
+        title = f"Stats for {username}"
     else:
         user = arg1[arg1.find("<@&")+3:arg1.find(">")]
         user = int(user.replace("!", ""))
+        title = "User-Stats"
         message = f"Are you even there? <@{user}>\n"
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{user}'")
     temp = cursor.fetchone()
@@ -450,7 +452,7 @@ async def user(ctx, arg1 = ""):
         message += f"`Highest Valid Count:` {highest_valid_count}\n"
         message += f"`Last Activity:` {time_since(last_activity)}\n"
         message += f"`Favorite Drink:` {drink}\n"
-        embed = Embed(title=f"Stats for {username}", 
+        embed = Embed(title=title, 
                       description=message)
         embed.set_footer(text=f"{PREFIX}help")
         await ctx.send(embed=embed)
