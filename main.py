@@ -7,7 +7,8 @@ from discord import Intents, Embed, Color, guild, message
 from discord.utils import get
 
 from datetime import datetime
-intents = Intents(messages=True, guilds=True)
+intents = Intents.default()
+intents.guild_messages = True
 load_dotenv()
 TOKEN = os.getenv('THE_COUNT_DISCORD_TOKEN')
 if TOKEN is None:
@@ -574,8 +575,44 @@ async def copy_data(ctx, arg1 = ""):
 @bot.event
 async def on_message_edit(before, after):
     if before.content != after.content:
-        if 'substring' in after.content:
-            print("Thats son of a bitch edited!")
+        cursor.execute(f"SELECT * FROM count_info WHERE guild_id = '{after.guild.id}'")
+        temp = cursor.fetchone()
+        if temp == None:
+            return
+        try:
+            changed_count, trash = before.content.split(' ', 1)
+        except ValueError:
+            changed_count = before.content
+        try:     
+            changed_count = int(changed_count)
+        except ValueError:
+            return
+        
+        guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
+        if int(last_user) != int(after.author.id) or changed_count != int(old_count):
+            return
+        await after.add_reaction('😡')
+        await after.reply(f"Wait, <@{after.author.id}> edited his message. Next number is {old_count +1}")
+
+@bot.event
+async def on_message_delete(message):
+    cursor.execute(f"SELECT * FROM count_info WHERE guild_id = '{message.guild.id}'")
+    temp = cursor.fetchone()
+    if temp == None:
+        return
+    try:
+        changed_count, trash = message.content.split(' ', 1)
+    except ValueError:
+        changed_count = message.content
+    try:     
+        changed_count = int(changed_count)
+    except ValueError:
+        return
+    
+    guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
+    if int(last_user) != int(message.author.id) or changed_count != int(old_count):
+        return
+    await message.channel.send(f"Hold on, <@{message.author.id}> deleted his message. Next number is {int(old_count) +1}")
 
 # -- Begin counting detection --
 @bot.event
@@ -613,15 +650,17 @@ async def on_message(_message):
                 last_user = str('')
                 update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp)
 
-                await ctx.send(str(temp[7]).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
-                channel = bot.get_channel(int(temp[6]))
-                await channel.send('<@%s> lost the count when it was at %s' % (ctx.message.author.id, old_count))
+                await ctx.send(str(greedy_message).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
+                
                 
                 await ctx.message.add_reaction('🇸')
                 await ctx.message.add_reaction('🇭')
                 await ctx.message.add_reaction('🇦')
                 await ctx.message.add_reaction('🇲')
                 await ctx.message.add_reaction('🇪')
+                channel = bot.get_channel(int(log_channel_id))
+                await channel.send('<@%s> lost the count when it was at %s' % (ctx.message.author.id, old_count))
+                
                 return
             if old_count + 1 != current_count:
                 guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
