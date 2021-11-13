@@ -44,13 +44,13 @@ def time_since(strtime):
     hours = duration.seconds // 3600
     minutes = (duration.seconds // 60) % 60
     if days > 0:
-        return f'{days}d ago'
+        return f'vor {days} Tagen'
     elif hours > 0:
-        return f'{hours}h ago'
+        return f'vor {hours} Stunden'
     elif minutes > 0:
-        return f'{minutes}m ago'
+        return f'vor {minutes} Minuten'
     else:
-        return 'just now'
+        return 'jetzt gerade'
     
 
 def isrightchannel(ctx):
@@ -80,10 +80,10 @@ def create_new_entry(guild_id,
                      count=str(0),
                      number_of_resets=str(0),
                      last_user=str(0),
-                     guild_message=str("{{{user}}} typed the wrong number"),
+                     guild_message=str("{{{user}}}s Wurstfinger haben nicht die richtige Zahl getroffen"),
                      count_channel_id=str(''),
                      log_channel_id=str(''),
-                     greedy_message=str("{{{user}}} was too greedy")):
+                     greedy_message=str("{{{user}}} war zu gierig")):
     # dbOperations.put(['create',
     temp1 = [
         str(guild_id), str(count),
@@ -168,25 +168,25 @@ bot.remove_command('help')
 
 @bot.command(name='help')
 async def count_help(ctx):
-    embed=Embed(title="Counting Bot", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
-     description="All commands",
+    embed=Embed(title="Der Zählbierboter", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
+     description="Alle Befehle",
     color=Color.purple())
     embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
-    message = f"`{PREFIX}counting_channel this_channel` to check the counting in this channel\n"
-    message += f"`{PREFIX}counting_channel @other_channel` to set the counting channel to another one\n"
-    message += f"`{PREFIX}log_channel this_channel` to set the log channel\n"
-    embed.add_field(name="Admin-Commands", value=message, inline=False)
-    message = f"`{PREFIX}server` - Shows stats for the server\n"
-    message += f"`{PREFIX}highscore` - Shows the top 10 users with the most correctly counted numbers\n"
-    message += f"`{PREFIX}highcount` - Shows the top 10 users with the highest counted numbers\n"
-    message += f"`{PREFIX}user` - Shows stats for yourself\n"
-    message += f"`{PREFIX}user @user` - Shows stats for different user\n"
-    message += f"`{PREFIX}beer_count` - Gets the current beer-debt-table for this guild\n"
-    message += f"`{PREFIX}beer_count me` - Gets the current beer-debt-table for this guild, where you are involved\n"
-    message += f"`{PREFIX}spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts\n"
-    message += f"`{PREFIX}set_drink` - Your favorite drink is not beer? No problem, weirdo!\n"
-    message += f"`{PREFIX}copy_data message_id` - Copies data from the original counting bot\n"
-    message += f"`{PREFIX}delete_me` Deletes yourself from the stats"
+    message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal einzusehen\n"
+    message += f"`{PREFIX}counting_channel @anderer_kanal` um den Kanal in dem gezählt wird zu ändern\n"
+    message += f"`{PREFIX}log_channel aktueller_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
+    embed.add_field(name="Admin Befehle", value=message, inline=False)
+    message = f"`{PREFIX}server` - Zeige die Statistiken für den ganzen Server\n"
+    message += f"`{PREFIX}highscore` - Zeige die 10 Nutzer, die am häufigsten richtig gezählt haben\n"
+    message += f"`{PREFIX}highcount` - Zeige die 10 Nutzer, welche die höchsten Zahlen getippt haben\n"
+    message += f"`{PREFIX}user` - Zeige deine eigenen Statistiken\n"
+    message += f"`{PREFIX}user @user` - Zeige Statistiken für einen anderen Zählenden\n"
+    message += f"`{PREFIX}drink_count` - Zeige die aktuelle Bierschuldentabelle für den Server\n"
+    message += f"`{PREFIX}drink_count me` - Zeigt dir alle Bierschuldentabelleneinträge bei denen du dabei bist\n"
+    message += f"`{PREFIX}spend_drink @user` - Sag dem Bot Bescheid, dass dir dein zustehendes Bier endlich ausgegeben wurde\n"
+    message += f"`{PREFIX}set_drink` - Wenn dein Lieblingsgetränk komischerweise kein Bier sein sollte kannst du das hier ändern (aber kein Radler)!\n"
+    message += f"`{PREFIX}copy_data message_id` - Kopiert die Daten vom originalen Bot\n"
+    message += f"`{PREFIX}delete_me` Löscht deine Daten aus dem Metaverse (tschüss)"
     embed.add_field(name="User-Commands", value=message, inline=False)
     embed.set_footer(text= f"{PREFIX} help")
     await ctx.send(embed=embed)
@@ -199,8 +199,8 @@ async def wrong_message(ctx, *args):
     _message = " ".join(args)
     if _message == 'help':
         response = """
-        Set the message to be sent when someone types the wrong number
-{{{user}}} will be replaced by the name of whoever typed the wrong number
+        Ändere die Nachricht für den Fall, dass es jemand verkackt hat
+{{{user}}} wird ersetzt durch den Namen der Schande
         """
         await ctx.send(response)
         return
@@ -222,7 +222,7 @@ async def wrong_message(ctx, *args):
 @wrong_message.error
 async def wrong_message_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
-        await ctx.send('You need Admin Permissions to do that command')
+        await ctx.send('Du hast leider nicht die erforderlichen Rechte um den Befehl auszuführen')
     else:
         raise error
 
@@ -234,8 +234,8 @@ async def greedy_message(ctx, *args):
     _message = " ".join(args)
     if _message == 'help':
         response = """
-        Set the message to be sent when someone types 2 messages in a row
-{{{user}}} will be replaced by the name of whoever typed the 2 messages
+        Ändere die Nachricht für den Fall, dass jemand 2 mal nacheinander gezählt hat
+{{{user}}} wird ersetzt durch den Namen der Schande
         """
         await ctx.send(response)
         return
@@ -256,7 +256,7 @@ async def greedy_message(ctx, *args):
 @wrong_message.error
 async def wrong_message_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
-        await ctx.send('You need Admin rights to run that command')
+        await ctx.send('Du hast leider nicht die erforderlichen Rechte um den Befehl auszuführen')
     else:
         raise error
 
@@ -268,12 +268,12 @@ async def counting_channel(ctx, arg1):
     channel_id = arg1
     if channel_id == 'help':
         response = f"""
-            Set the id of the channel that you want to count in
-use `{PREFIX}counting_channel this_channel` to use the channel that you are typing in
+            Ändere die ID des Kanals in dem gezählt wird
+nutze `{PREFIX}counting_channel aktueller_kanal` um im aktuellen Kanal zu zählen
             """
         await ctx.send(response)
         return
-    if channel_id == 'this_channel':
+    if channel_id == 'aktueller_kanal':
         channel_id = ctx.channel.id
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
     test = cursor.fetchone()
@@ -292,7 +292,7 @@ use `{PREFIX}counting_channel this_channel` to use the channel that you are typi
 @counting_channel.error
 async def counting_channel_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
-        await ctx.send('You need Admin rights to run that command')
+        await ctx.send('Du brauchst Admin Rechte für diesen Befehl')
     else:
         raise error
 
@@ -304,12 +304,12 @@ async def log_channel(ctx, arg1):
     channel_id = arg1
     if channel_id == 'help':
         response = f"""
-            Set the id of the channel that you want to log mistakes too
-use `{PREFIX}log_channel this_channel` to use the channel that you are typing in
+            Ändere den Kanal in dem Log Einträge gesendet werden
+nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern 
             """
         await ctx.send(response)
         return
-    if channel_id == 'this_channel':
+    if channel_id == 'aktueller_kanal':
         channel_id = ctx.channel.id
         
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
@@ -327,13 +327,13 @@ use `{PREFIX}log_channel this_channel` to use the channel that you are typing in
 @counting_channel.error
 async def counting_channel_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
-        await ctx.send('You need the Admin rights to run that command')
+        await ctx.send('Leider immernoch nicht genug Rechte')
     else:
         raise error
 
 # -- End Count Master Commands --
 # -- Begin Beer Count Commands --
-@bot.command(name='beer_count')
+@bot.command(name='drink_count')
 async def beer_count(ctx, args1 = ""):
     if not isrightchannel(ctx):
         return
@@ -345,10 +345,10 @@ async def beer_count(ctx, args1 = ""):
         cursor.execute(f"SELECT * FROM beers WHERE guild_id = '{ctx.guild.id}' ORDER BY count DESC")
         db_results = cursor.fetchall()
     if db_results == [] and args1 == 'me':
-        await ctx.send(f"{ctx.message.author.mention} has not won any drinks yet")
+        await ctx.send(f"{ctx.message.author.mention} hat noch nichts gewonnen")
         return
     if db_results == []:
-        await ctx.send("No one has won any drinks yet")
+        await ctx.send("Bisher hat noch niemand was gewonnen")
         return
     
     str = ""
@@ -363,10 +363,10 @@ async def beer_count(ctx, args1 = ""):
         else:
             guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
 
-        str +=  f"<@{user2}> ows <@{user1}> {count} {drink}s\n"
+        str +=  f"<@{user2}> schuldet <@{user1}> {count} {drink}s\n"
     
     if str != "":
-        embed = Embed(title=f"Drink Table for {ctx.guild.name}", description=str, color=Color.dark_gold())
+        embed = Embed(title=f"Schuldentabelle {ctx.guild.name}", description=str, color=Color.dark_gold())
         embed.set_footer(text=f"{PREFIX}help")
         await ctx.send(embed=embed)
     
@@ -379,23 +379,23 @@ async def spend_beer(ctx, args1 = ""):
     owing_user = int(owing_user.replace("!", ""))
     if args1 == 'help' or args1 == "" or owing_user == "":
         await ctx.send(f"""
-        `{PREFIX}spend_beer @user` to register a done forfeit. Make sure to really tag the person
+        `{PREFIX}spend_beer @user` um Bescheid zu sagen, dass dir dein zustehendes Getränk bezahlt wurde 
         """)
         return
     if args1 == 'me':
-        await ctx.send("Funny you! I won't count your own drinkung habits")
+        await ctx.send("Nana deinen eigenen Alkoholkonsum kannst du hier nicht abrechnen")
         return
     user = ctx.message.author.id
     #update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
    
     Changed, new_count = update_beertable(ctx.guild.id, user, owing_user, -1, second_try=False, spend_beer=True)
     if Changed == False:
-        await ctx.send(f"<@{owing_user}> didn't owe you a beer, but it's still great you met up")
+        await ctx.send(f"<@{owing_user}> hat dir zwar nichts geschuldet, aber er lässt Dank ausrichten")
         return
     if new_count == 0:
-        await ctx.send(f"<@{owing_user}> and you are now all made up!")
+        await ctx.send(f"<@{owing_user}> und du sind jetzt quitt!")
         return
-    await ctx.send(f"Thanks for the info!, <@{owing_user}> now owes <@{user}> {new_count} beers")
+    await ctx.send(f"Danke für die Info!, <@{owing_user}> schuldet <@{user}> jetzt {new_count} Getränke")
 
 @bot.command(name='server')
 async def server(ctx):
@@ -414,11 +414,11 @@ async def server(ctx):
         last_user = 'None'
     else:
         last_user = f"<@{last_user}>"
-    message = f"`Current count:` {count}\n"
-    message += f"`Last counted by` {last_user}\n"
+    message = f"`Aktueller Stand:` {count}\n"
+    message += f"`Zuletzt gezählt:` {last_user}\n"
     message += f"`High Score:` {record} ({timestr})\n"
-    message += f"`Counted by` <@{record_user}>\n"
-    embed=Embed(title=f"Stats for {ctx.guild.name}", 
+    message += f"`Erreicht von:` <@{record_user}>\n"
+    embed=Embed(title=f"Statistiken für {ctx.guild.name}", 
                 description=message)    
     embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
@@ -431,30 +431,30 @@ async def user(ctx, arg1 = ""):
         user = ctx.message.author.id
         username = ctx.message.author.name
         message =""
-        title = f"Stats for {username}"
+        title = f"Statistiken für {username}"
     else:
         user = arg1[arg1.find("<@&")+3:arg1.find(">")]
         user = int(user.replace("!", ""))
-        title = "User-Stats"
-        message = f"Are you even there? <@{user}>\n"
+        title = "Nutzer Statistiken"
+        message = f"Ist da jemand? <@{user}>\n"
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{user}'")
     temp = cursor.fetchone()
     if temp is None:
         if arg1 == "":
-            await ctx.send(f"<@{user}, you should try counting first!")
+            await ctx.send(f"<@{user}, vielleicht solltest du erstmal zählen! Ist auch gar nicht so schwer 1, 2,... mist was kommt jetzt?")
         else:
-            await ctx.send(f"<@{user}> has to learn counting first and is revisiting school")
+            await ctx.send(f"<@{user}> muss das Zählen erst noch lernen und geht erstmal zurück in die Schule (+Exmatrikulation)")
         return
     else:
      #stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
         guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
         percent_correct = round(int(count_correct) / (int(count_correct) + int(count_wrong)) * 100, 2)
-        message += f"`Count Correct:` {count_correct}\n"
-        message += f"`Count Wrong:` {count_wrong}\n"
-        message += f"`Percentage Correct:` {percent_correct} %\n"
-        message += f"`Highest Valid Count:` {highest_valid_count}\n"
-        message += f"`Last Activity:` {time_since(last_activity)}\n"
-        message += f"`Favorite Drink:` {drink}\n"
+        message += f"`Richtig gezählt:` {count_correct}\n"
+        message += f"`Verzählt:` {count_wrong}\n"
+        message += f"`Prozentual richtig:` {percent_correct} %\n"
+        message += f"`Höchste richtige Zahl:` {highest_valid_count}\n"
+        message += f"`Zuletzt online:` {time_since(last_activity)}\n"
+        message += f"`Lieblingsgetränk:` {drink}\n"
         embed = Embed(title=title, 
                       description=message)
         embed.set_footer(text=f"{PREFIX}help")
@@ -480,7 +480,7 @@ async def highscore(ctx):
             break
         i += 1
     if i > 1:
-        embed = Embed(title=f"Top 10 for {ctx.guild.name}", 
+        embed = Embed(title=f"Die 10 fähigsten Zählenden auf {ctx.guild.name}", 
                       description=message, color=Color.green())
         embed.set_footer(text=f"{PREFIX}help")
         await ctx.send(embed=embed)
@@ -502,7 +502,7 @@ async def highcount(ctx):
             break
         i += 1
     if i > 1:
-        embed = Embed(title=f"10 highest Counters for {ctx.guild.name}", 
+        embed = Embed(title=f"Die 10 Zählenden mit den höchsten Zahlen {ctx.guild.name}", 
                       description=message, color=Color.green())
         embed.set_footer(text=f"{PREFIX}help")
         await ctx.send(embed=embed)
@@ -512,17 +512,17 @@ async def set_drink(ctx, arg1 = ""):
     if not isrightchannel(ctx):
         return
     if arg1 == "":
-        await ctx.send("Please specify a drink")
+        await ctx.send("Bitte gib an was du gerne saufst")
         return
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     temp = cursor.fetchone()
     if temp is None:
-        await ctx.send("You have to count first!")
+        await ctx.send("Erstmal musst du auch ein bisschen zählen!")
         return
     else:
         cursor.execute(f"UPDATE stats SET drink = '{arg1}' WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
         connection.commit()
-        await ctx.send(f"{ctx.author.name}'s favorite drink is now {arg1}")
+        await ctx.send(f"{ctx.author.name}s Lieblingsgetränk ist jetzt {arg1} PROST!")
 
 @bot.command(name='delete_me')
 async def delete_me(ctx):
@@ -531,19 +531,19 @@ async def delete_me(ctx):
     cursor.execute(f"DELETE FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     connection.commit()
     await ctx.message.add_reaction("😞")
-    await ctx.send(f"{ctx.author.name} has been deleted from the database")
+    await ctx.send(f"{ctx.author.name} wurde aus der Datenbank gelöscht")
 
 @bot.command(name='copy_data')
 async def copy_data(ctx, arg1 = ""):
     if not isrightchannel(ctx):
         return
     if arg1 == "":
-        await ctx.send("Please enter a message id")
+        await ctx.send("Bitte gib die Nachrichten ID an")
         return
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     temp = cursor.fetchone()
     if temp is not None:
-        await ctx.send(f"This works only if you delete yourself first with `{PREFIX}delete_me`")
+        await ctx.send(f"Dafür musst du dich erstmal mit `{PREFIX}delete_me` selbst löschen (tut auch gar nicht weh) ")
         return
     counting_bot_mssg = await ctx.channel.fetch_message(int(arg1))
     try: 
@@ -564,10 +564,10 @@ async def copy_data(ctx, arg1 = ""):
         last_activity = datetime.now()
         cursor.execute(f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{ctx.guild.id}', '{ctx.author.id}', '{total_correct}', '{total_wrong}', '{highest_valid_count}', '{last_activity}', 'beer')")
         connection.commit()
-        await ctx.send(f"{ctx.author.name}, welcome to the Party\n<@{counting_bot_mssg.author.id}> is too stupid to save your favorite drink. Pls set it with `{PREFIX}set_drink`")
+        await ctx.send(f"{ctx.author.name}, willkommen zur Party\n<@{counting_bot_mssg.author.id}> hat dein Lieblingsgetränk leider akkustisch nicht mitbekommen. Probiers nochmal mit `{PREFIX}set_drink`")
     except:
         embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
-            description="Something went utterly wrong! But a Nerd is fixing it right away. Are you yourself a nerd? Just help at the github-repo!", color=Color.red())
+            description="Äh ja, jetzt ist hier etwas ziemlich schief gelaufen... Im Idealfall sitzt schon ein Nerd dran. Falls du auch manchmal so genannt wirst (warum auch immer) schau doch mal auf GitHub ob du helfen kannst!", color=Color.red())
         embed.set_footer(text=f"{PREFIX}help")
         await ctx.send(embed=embed)
         
@@ -594,7 +594,7 @@ async def on_message_edit(before, after):
         if int(last_user) != int(after.author.id) or changed_count != int(old_count):
             return
         await after.add_reaction('😡')
-        await after.reply(f"Wait, <@{after.author.id}> edited this message. Next number is {str(int(old_count) +1)}")
+        await after.reply(f"HALT STOP, <@{after.author.id}> hat die Nachricht bearbeitet. Die nächste Zahl ist eigentlich {str(int(old_count) +1)}")
 
 @bot.event
 async def on_message_delete(message):
@@ -614,7 +614,7 @@ async def on_message_delete(message):
     guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
     if int(last_user) != int(message.author.id) or changed_count != int(old_count):
         return
-    await message.channel.send(f"Hold on, <@{message.author.id}> deleted an important message. Next number is {int(old_count) +1}")
+    await message.channel.send(f"HALT STOP, <@{message.author.id}> hat einfach eine Zahl gelöscht. Weiter gehts mit {int(old_count) +1}")
 
 # -- Begin counting detection --
 @bot.event
@@ -661,7 +661,7 @@ async def on_message(_message):
                 await ctx.message.add_reaction('🇲')
                 await ctx.message.add_reaction('🇪')
                 channel = bot.get_channel(int(log_channel_id))
-                await channel.send('<@%s> lost the count when it was at %s' % (ctx.message.author.id, old_count))
+                await channel.send('<@%s> hat die Zählerei bei %s verloren' % (ctx.message.author.id, old_count))
                 
                 return
             if old_count + 1 != current_count:
@@ -678,7 +678,7 @@ async def on_message(_message):
                 
                 await ctx.message.add_reaction('❌')
                 if old_count != 0 and old_last_user != '':
-                    await channel.send('<@%s> lost the count when it was at %s and has to give <@%s> a beer!' % (ctx.message.author.id, old_count, old_last_user))
+                    await channel.send('<@%s> kann nicht bis %s zählen und schuldet <@%s> jetzt ein alkoholisches Getränk!' % (ctx.message.author.id, old_count+1, old_last_user))
                     update_beertable(guild_id, old_last_user, beers_last_user,  +1)
                 
                     
