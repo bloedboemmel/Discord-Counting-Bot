@@ -51,11 +51,13 @@ Same goes for the logging_channel, which also reacts to any user-commands (`!cou
 
 `!count delete_me` - Deletes your account from the server stats, but not from the beer-debts
 
-## To be implemented
-
 `!count copy_info` - Copies your stats from the the Counting Bot to this bot
 
+## To be implemented
+
 Bot should react to edited messages.
+
+A little more insults, when somebody tries to trick the bot!
 
 # Run in docker
 ```	

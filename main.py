@@ -52,6 +52,15 @@ def time_since(strtime):
         return 'just now'
     
 
+def isrightchannel(ctx):
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    temp = cursor.fetchone()
+    if temp is None:
+        return
+    guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
+    if int(log_channel_id) != int(ctx.channel.id):
+        return False
+    return True
 
 def insert_values_into_table(dbname, tablename, values):
     if os.path.exists(dbname) is True:
@@ -171,10 +180,10 @@ async def count_help(ctx):
     message += f"`{PREFIX} highcount` - Shows the top 10 users with the highest counted numbers\n"
     message += f"`{PREFIX} user` - Shows stats for yourself\n"
     message += f"`{PREFIX} user @user` - Shows stats for different user\n"
-    message += f"`{PREFIX} beer_count` - Gets the current beer-debt-table for this guild"
-    message += f"`{PREFIX} beer_count me` - Gets the current beer-debt-table for this guild, where you are involved"
-    message += f"`{PREFIX} spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts"
-    message += f"`{PREFIX} set_drink` - Your favorite drink is not beer? No problem, weirdo!"
+    message += f"`{PREFIX} beer_count` - Gets the current beer-debt-table for this guild\n"
+    message += f"`{PREFIX} beer_count me` - Gets the current beer-debt-table for this guild, where you are involved\n"
+    message += f"`{PREFIX} spend_beer @user` - Notify the bot that the other user has paid for your beer and updates the debts\n"
+    message += f"`{PREFIX} set_drink` - Your favorite drink is not beer? No problem, weirdo!\n"
     embed.add_field(name="User-Commands", value=message, inline=False)
     embed.set_footer(text= f"{PREFIX} help")
     await ctx.send(embed=embed)
@@ -323,13 +332,7 @@ async def counting_channel_error(ctx, error):
 # -- Begin Beer Count Commands --
 @bot.command(name='beer_count')
 async def beer_count(ctx, args1 = ""):
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    temp = cursor.fetchone()
-    if temp is None:
-        #print("No log_channel for beer_score")
-        return
-    elif temp[6] != ctx.channel.id:
-        #print("Wrong channel for beer_score")
+    if not isrightchannel(ctx):
         return
     #print("beer_count")
     if args1 == 'me':
@@ -367,6 +370,8 @@ async def beer_count(ctx, args1 = ""):
 
 @bot.command(name= 'spend_beer')
 async def spend_beer(ctx, args1 = ""):
+    if not isrightchannel(ctx):
+        return
     owing_user = args1[args1.find("<@&")+3:args1.find(">")]
     owing_user = int(owing_user.replace("!", ""))
     if args1 == 'help' or args1 == "" or owing_user == "":
@@ -391,13 +396,7 @@ async def spend_beer(ctx, args1 = ""):
 
 @bot.command(name='server')
 async def server(ctx):
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    temp = cursor.fetchone()
-    if temp is None:
-        #print("No valid channel")
-        return
-    elif temp[6] != ctx.channel.id:
-        #print("Wrong channel for server_stats")
+    if not isrightchannel(ctx):
         return
     #print("server")
     # count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
@@ -418,6 +417,8 @@ async def server(ctx):
     
 @bot.command(name='user')
 async def user(ctx, arg1 = ""):
+    if not isrightchannel(ctx):
+        return
     if arg1 == "":
         user = ctx.message.author.id
         username = ctx.message.author.name
@@ -453,13 +454,7 @@ async def user(ctx, arg1 = ""):
     
 @bot.command(name='highscore')
 async def highscore(ctx):
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    temp = cursor.fetchone()
-    if temp is None:
-        #print("No log_channel for highscore")
-        return
-    elif temp[6] != ctx.channel.id:
-        #print("Wrong channel for highscore")
+    if not isrightchannel(ctx):
         return
     #print("highscore")
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
@@ -482,6 +477,8 @@ async def highscore(ctx):
 
 @bot.command(name='highcount')
 async def highcount(ctx):
+    if not isrightchannel(ctx):
+        return
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY highest_valid_count DESC")
     db_results = cursor.fetchall()
     i = 1
@@ -502,6 +499,8 @@ async def highcount(ctx):
 
 @bot.command(name='set_drink')
 async def set_drink(ctx, arg1 = ""):
+    if not isrightchannel(ctx):
+        return
     if arg1 == "":
         await ctx.send("Please specify a drink")
         return
@@ -517,10 +516,51 @@ async def set_drink(ctx, arg1 = ""):
 
 @bot.command(name='delete_me')
 async def delete_me(ctx):
+    if not isrightchannel(ctx):
+        return
     cursor.execute(f"DELETE FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     connection.commit()
-    await ctx.add_reaction("😞")
+    await ctx.message.add_reaction("😞")
     await ctx.send(f"{ctx.author.name} has been deleted from the database")
+
+@bot.command(name='copy_data')
+async def copy_data(ctx, arg1 = ""):
+    if not isrightchannel(ctx):
+        return
+    if arg1 == "":
+        await ctx.send("Please enter a message id")
+        return
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
+    temp = cursor.fetchone()
+    if temp is not None:
+        await ctx.send(f"This works only if you delete yourself first with `{PREFIX} delete_me`")
+        return
+    counting_bot_mssg = await ctx.channel.fetch_message(int(arg1))
+    try: 
+        counting_bot_mssg_content = counting_bot_mssg.content
+        username = counting_bot_mssg.embeds[0].title
+        if username != ctx.author.name + "#" + ctx.author.discriminator:
+            await ctx.send("Sneaky you! These stats aren't yours!")
+            return
+        value = counting_bot_mssg.embeds[0].fields[1].value.split("\n")
+        # get number from "Total correct: **2**"
+        total_correct = int(value[1].split("**")[1].replace("**", ""))
+        # get number from "Total wrong: **1**"
+        total_wrong = int(value[2].split("**")[1].replace("**", ""))
+        # get number from 'Highest Valid Count: **1 (24s ago)**'
+        highest_valid_count = int(value[4].split("**")[1].split(" ")[0])
+        
+        # Insert data into database
+        last_activity = datetime.now()
+        cursor.execute(f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{ctx.guild.id}', '{ctx.author.id}', '{total_correct}', '{total_wrong}', '{highest_valid_count}', '{last_activity}', 'beer')")
+        connection.commit()
+        await ctx.send(f"{ctx.author.name}, welcome to the Party\n<@{counting_bot_mssg.author.id}> is too stupid to save your favorite drink. Pls set it with `{PREFIX} set_drink`")
+    except:
+        embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
+            description="Something went utterly wrong! But a Nerd is fixing it right away. Are you yourself a nerd? Just help at the github-repo!", color=Color.red())
+        embed.set_footer(text=f"{PREFIX}help")
+        await ctx.send(embed=embed)
+        
 
 # -- Begin Edit Detection --
 ## doesn't work yet...........
