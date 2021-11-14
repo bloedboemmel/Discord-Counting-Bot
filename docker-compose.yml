@@ -1,0 +1,8 @@
+version: '2'
+services:
+  countingbot:
+    build: 
+      context: .
+      dockerfile: dockerfile
+    ports:
+     - 5050:5050

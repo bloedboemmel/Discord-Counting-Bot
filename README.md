@@ -64,4 +64,3 @@ A little more insults, when somebody tries to trick the bot!
 docker-compose build
 docker run --env THE_COUNT_DISCORD_TOKEN=<YOUR_VERY_OWN_DISCORDTOKEN> discord-counting-bot_countingbot:latest
 ```
-
