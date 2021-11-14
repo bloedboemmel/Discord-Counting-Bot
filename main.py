@@ -333,7 +333,7 @@ async def counting_channel_error(ctx, error):
 
 # -- End Count Master Commands --
 # -- Begin Beer Count Commands --
-@bot.command(name='drink_count')
+@bot.command(name='beer_count', aliases=['drink_count', 'drinks'])
 async def beer_count(ctx, args1 = ""):
     if not isrightchannel(ctx):
         return
