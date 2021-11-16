@@ -3,7 +3,7 @@ import os
 from discord.client import Client
 from dotenv import load_dotenv
 from discord.ext import commands
-from discord import Intents, Embed, Color, guild, message
+from discord import Intents, Embed, Color, guild, message, ext
 from discord.utils import get
 
 from datetime import datetime
@@ -581,33 +581,29 @@ async def copy_data(ctx, arg1=""):
         await ctx.send(f"Dafür musst du erst mit `{PREFIX}delete_me` deine Statistik löschen (tut auch gar nicht weh) ")
         return
     counting_bot_mssg = await ctx.channel.fetch_message(int(arg1))
-    try:
-        counting_bot_mssg_content = counting_bot_mssg.content
-        username = counting_bot_mssg.embeds[0].title
-        if username != ctx.author.name + "#" + ctx.author.discriminator:
-            await ctx.send("Sneaky you! These stats aren't yours!")
-            return
-        value = counting_bot_mssg.embeds[0].fields[1].value.split("\n")
-        # get number from "Total correct: **2**"
-        total_correct = int(value[1].split("**")[1].replace("**", ""))
-        # get number from "Total wrong: **1**"
-        total_wrong = int(value[2].split("**")[1].replace("**", ""))
-        # get number from 'Highest Valid Count: **1 (24s ago)**'
-        highest_valid_count = int(value[4].split("**")[1].split(" ")[0])
+    
+    counting_bot_mssg_content = counting_bot_mssg.content
+    username = counting_bot_mssg.embeds[0].title
+    if username != ctx.author.name + "#" + ctx.author.discriminator:
+        await ctx.send("Sneaky you! These stats aren't yours!")
+        return
+    value = counting_bot_mssg.embeds[0].fields[1].value.split("\n")
+    # get number from "Total correct: **2**"
+    total_correct = int(value[1].split("**")[1].replace("**", ""))
+    # get number from "Total wrong: **1**"
+    total_wrong = int(value[2].split("**")[1].replace("**", ""))
+    # get number from 'Highest Valid Count: **1 (24s ago)**'
+    highest_valid_count = int(value[4].split("**")[1].split(" ")[0])
 
-        # Insert data into database
-        last_activity = datetime.now()
-        cursor.execute(
-            f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{ctx.guild.id}', '{ctx.author.id}', '{total_correct}', '{total_wrong}', '{highest_valid_count}', '{last_activity}', 'beer')")
-        connection.commit()
-        await ctx.send(
-            f"{ctx.author.name}, willkommen zur Party\n<@{counting_bot_mssg.author.id}> hat dein Lieblingsgetränk leider akkustisch nicht mitbekommen. Probiers nochmal mit `{PREFIX}set_drink`")
-    except:
-        embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
-                      description="Äh ja, jetzt ist hier etwas ziemlich schief gelaufen... Im Idealfall sitzt schon ein Nerd dran. Falls du auch manchmal so genannt wirst (warum auch immer) schau doch mal auf GitHub ob du helfen kannst!",
-                      color=Color.red())
-        embed.set_footer(text=f"{PREFIX}help")
-        await ctx.send(embed=embed)
+    # Insert data into database
+    last_activity = datetime.now()
+    cursor.execute(
+        f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{ctx.guild.id}', '{ctx.author.id}', '{total_correct}', '{total_wrong}', '{highest_valid_count}', '{last_activity}', 'beer')")
+    connection.commit()
+    await ctx.send(
+        f"{ctx.author.name}, willkommen zur Party\n<@{counting_bot_mssg.author.id}> hat dein Lieblingsgetränk leider akkustisch nicht mitbekommen. Probiers nochmal mit `{PREFIX}set_drink`")
+
+        
 
 
 # -- Begin Edit Detection --
@@ -658,6 +654,22 @@ async def on_message_delete(message):
         f"HALT STOP, <@{message.author.id}> hat eine Zahl gelöscht. Weiter geht's mit {int(old_count) + 1}")
 
 
+# -- Send error to bloedboemmel- server --
+@bot.event
+async def on_message_error(ctx, error):
+    if isinstance(error, ext.commands.errors.CommandNotFound):
+        return
+    embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
+                      description="Äh ja, jetzt ist hier etwas ziemlich schief gelaufen... Im Idealfall sitzt schon ein Nerd dran. Falls du auch manchmal so genannt wirst (warum auch immer) schau doch mal auf GitHub ob du helfen kannst!",
+                      color=Color.red())
+    embed.set_footer(text=f"{PREFIX}help")
+    await ctx.send(embed=embed)
+    channel = bot.get_channel(910230898115506226)
+    await channel.send(ctx.command) # I am trying to send the command with error here
+    await channel.send(error)
+    raise error
+
+    
 # -- Begin counting detection --
 
 
@@ -715,6 +727,7 @@ async def on_message(_message):
 
                 return
             if old_count + 1 != current_count:
+                # FALSCHE GEZÄHLT
                 guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
                 count = str(0)
                 number_of_resets = str(int(old_number_of_resets) + 1)
@@ -731,24 +744,14 @@ async def on_message(_message):
                 if old_count != 0 and old_last_user != '':
                     await channel.send(
                         '<@%s> hat es bei %s verkackt und schuldet <@%s> jetzt ein Getränk!' % (
-                        ctx.message.author.id, old_count + 1, old_last_user))
+                        ctx.message.author.id, str(old_count + 1), old_last_user))
                     update_beertable(guild_id, old_last_user, beers_last_user, +1)
 
                 update_stats(guild_id, beers_last_user, correct_count=False)
-                # auf PRO_ROLE prüfen
-                cursor.execute(
-                    f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
-                temp = cursor.fetchone()
-                if temp is None:
-                    # hat wohl noch nie gezaehlt
-                    return
-                else:
-                    guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
-                    if count_correct >= PRO_ROLE_THRESHOLD:
-                        role = get(bot.get_guild(ctx.guild.id).roles, id=PRO_ROLE_ID)
-                        await msg_user.add_roles(role)
+                
                 return
             if old_count + 1 == current_count:
+                # RICHTIG GEZÄHLT
                 guild_id, old_count, number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
 
                 count = str(current_count)
@@ -764,7 +767,19 @@ async def on_message(_message):
                 update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id,
                             greedy_message, record, record_user, record_timestamp)
                 update_stats(guild_id, ctx.message.author.id, current_number=current_count)
-
+                
+                # auf PRO_ROLE prüfen
+                cursor.execute(
+                    f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
+                temp = cursor.fetchone()
+                if temp is None:
+                    # hat wohl noch nie gezaehlt
+                    return
+                else:
+                    guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+                    if count_correct >= PRO_ROLE_THRESHOLD:
+                        role = get(bot.get_guild(ctx.guild.id).roles, id=PRO_ROLE_ID)
+                        await msg_user.add_roles(role)
                 return
             return
 
