@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from discord.client import Client
+from discord.enums import Enum
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord import Intents, Embed, Color, guild, message, ext
@@ -21,13 +22,143 @@ PREFIX = "!count "
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 DbName = 'count.sqlite'
-count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id',
-                      'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
+count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user','channel_id', 'log_channel_id', 'record', 'record_user', 'record_timestamp', 
+                'pro_role_threshold', 'pro_role_id', 'pro_channel_id', 'pro_current_count', 'pro_number_of_resets', 'pro_last_user', 'pro_record', 'pro_record_user', 'pro_record_timestamp']
 stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink']
 beer_headers = ['guild_id', 'user', 'owed_user', 'count']
 connection = sqlite3.connect(DbName)
 cursor = connection.cursor()
 
+
+class count_type(Enum):
+    NOTHING = 0
+    RIGHT = 1
+    WRONG = 2
+    GREEDY = 3
+
+class COUNT_INFO():
+    exists = False
+    guild_id = None
+    
+    current_count = 0
+    number_of_resets = 0
+    last_user = None
+    channel_id = None
+    log_channel_id = None
+    record = 0
+    record_user = None
+    record_timestamp = None
+    pro_role_id = None
+    pro_channel_id = None
+    pro_current_count = 0
+    pro_number_of_resets = 0
+    pro_last_user = None
+    pro_record = 0
+    pro_record_user = None
+    pro_record_timestamp = None
+    def __init__(self, guild_id):
+        self.guild_id = guild_id
+        temp = self.get_count_info(guild_id)
+        if temp is None:
+            return
+        self.exists = True
+        self.current_count = temp[1]
+        self.number_of_resets = temp[2]
+        self.last_user = temp[3]
+        self.channel_id = temp[4]
+        self.log_channel_id = temp[5]
+        self.record = temp[6]
+        self.record_user = temp[7]
+        self.record_timestamp = temp[8]
+        self.pro_role_threshold = temp[9]
+        self.pro_role_id = temp[10]
+        self.pro_channel_id = temp[11]
+        self.pro_current_count = temp[12]
+        self.pro_number_of_resets = temp[13]
+        self.pro_last_user = temp[14]
+        self.pro_record = temp[15]
+        self.pro_record_user = temp[16]
+        self.pro_record_timestamp = temp[17]
+
+
+    def get_count_info(self, guild_id):
+        cursor.execute(f"SELECT * FROM count_info WHERE guild_id = {guild_id}")
+        temp = cursor.fetchone()
+        if temp is None:
+            return None
+        return temp
+    
+    def is_log_channel(self, ctx):
+        if self.log_channel_id is None:
+            return False
+        if int(self.log_channel_id) != int(ctx.channel.id):
+            return False
+        return True
+
+    def is_count_channel(self, ctx):
+        if self.channel_id is None:
+            return False
+        if int(self.channel_id) != int(ctx.channel.id) and (self.pro_channel_id is None or int(self.pro_channel_id) != int(ctx.channel.id)):
+            return False
+        return True
+
+    def is_pro_channel(self,ctx):
+        if self.pro_channel_id is None:
+            return False
+        if int(self.pro_channel_id) != int(ctx.channel.id):
+            return False
+        return True
+
+    def create_new_entry(self, ctx):
+        
+        temp1 = [
+            ctx.guild.id, #guild_id
+            0, #current_count
+            0, #number_of_resets
+            None, #last_user
+            ctx.channel.id, #channel_id
+            ctx.channel.id, #log_channel_id
+            0, #record
+            None, #record_user
+            None, #record_timestamp
+            50, #pro_role_threshold
+            None, #pro_role_id
+            None, #pro_channel_id
+            None, #pro_current_count
+            None, #pro_number_of_resets
+            None, #pro_last_user
+            None, #pro_record
+            None, #pro_record_user
+            None #pro_record_timestamp
+        ]
+        cursor.execute("INSERT INTO count_info VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", temp1)
+        connection.commit()
+        return True
+    # info = [guild_id, current_count, number_of_resets, last_user, channel_id, log_channel_id, record, record_user, record_timestamp, pro_role_id, pro_channel_id, pro_current_count, pro_number_of_resets, pro_last_user, pro_record, pro_record_user, pro_record_timestamp]  
+    def update_info(self, count=-1, number_of_resets=-1, last_user=None, channel_id=None, record= -1, record_user=None, record_timestamp=None, pro_role_threshold = -1, pro_role_id=None, pro_channel_id=None, pro_current_count=-1, pro_number_of_resets=-1, pro_last_user=None, pro_record=-1, pro_record_user=None, pro_record_timestamp=None):
+        temp = [
+            self.guild_id, #guild_id
+            self.current_count if count == -1 else count, #current_count
+            self.number_of_resets if number_of_resets == -1 else number_of_resets, #number_of_resets
+            self.last_user if last_user is None else last_user, #last_user
+            self.channel_id if channel_id is None else channel_id, #channel_id
+            self.log_channel_id, #log_channel_id
+            self.record if record == -1 else record, #record
+            self.record_user if record_user is None else record_user, #record_user
+            self.record_timestamp if record_timestamp is None else record_timestamp, #record_timestamp
+            self.pro_role_threshold if pro_role_threshold == -1 else pro_role_threshold, #pro_role_threshold
+            self.pro_role_id if pro_role_id is None else pro_role_id, #pro_role_id
+            self.pro_channel_id if pro_channel_id is None else pro_channel_id, #pro_channel_id
+            self.pro_current_count if pro_current_count == -1 else pro_current_count, #pro_current_count
+            self.pro_number_of_resets if pro_number_of_resets == -1 else pro_number_of_resets, #pro_number_of_resets
+            self.pro_last_user if pro_last_user is None else pro_last_user, #pro_last_user
+            self.pro_record if pro_record == -1 else pro_record, #pro_record
+            self.pro_record_user if pro_record_user is None else pro_record_user, #pro_record_user
+            self.pro_record_timestamp if pro_record_timestamp is None else pro_record_timestamp #pro_record_timestamp
+        ]
+        cursor.execute(f"UPDATE count_info SET guild_id = ?,current_count = ?, number_of_resets = ?, last_user = ?, channel_id = ?, log_channel_id = ?, record = ?, record_user = ?, record_timestamp = ?, pro_role_threshold = ?, pro_role_id = ?, pro_channel_id = ?, pro_current_count = ?, pro_number_of_resets = ?, pro_last_user = ?, pro_record = ?, pro_record_user = ?, pro_record_timestamp = ? WHERE guild_id = {self.guild_id}", temp)
+        connection.commit()
+        return True
 
 # -- Begin SQL Helper Functions --
 def create_table(dbname, tablename, tableheader):
@@ -38,6 +169,19 @@ def create_table(dbname, tablename, tableheader):
     except sqlite3.OperationalError:
         return
 
+def insert_values_into_table(dbname, tablename, values):
+    if os.path.exists(dbname) is True:
+        cursor.execute("INSERT INTO %s VALUES %s" % (tablename, tuple(values)))
+        connection.commit()
+
+
+
+
+def check_if_table_exists(dbname, tablename, tableheaders):
+    try:
+        cursor.execute("SELECT * FROM %s" % tablename)
+    except sqlite3.OperationalError:
+        create_table(dbname, tablename, tableheaders)
 
 def time_since(strtime):
     now = datetime.now()
@@ -55,56 +199,6 @@ def time_since(strtime):
     else:
         return 'jetzt gerade'
 
-
-def isrightchannel(ctx):
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    temp = cursor.fetchone()
-    if temp is None:
-        return
-    guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-    if int(log_channel_id) != int(ctx.channel.id):
-        return False
-    return True
-
-
-def insert_values_into_table(dbname, tablename, values):
-    if os.path.exists(dbname) is True:
-        cursor.execute("INSERT INTO %s VALUES %s" % (tablename, tuple(values)))
-        connection.commit()
-
-
-def check_if_table_exists(dbname, tablename, tableheaders):
-    try:
-        cursor.execute("SELECT * FROM %s" % tablename)
-    except sqlite3.OperationalError:
-        create_table(dbname, tablename, tableheaders)
-
-
-def create_new_entry(guild_id,
-                     count=str(0),
-                     number_of_resets=str(0),
-                     last_user=str(0),
-                     guild_message=str("{{{user}}} hat die falsche Zahl geschrieben!"),
-                     count_channel_id=str(''),
-                     log_channel_id=str(''),
-                     greedy_message=str("{{{user}}} war zu gierig")):
-    # dbOperations.put(['create',
-    temp1 = [
-        str(guild_id), str(count),
-        str(number_of_resets),
-        str(last_user),
-        str(guild_message),
-        str(count_channel_id),
-        str(log_channel_id),
-        str(greedy_message),
-        str(0),
-        str(0),
-        str(0)]
-    # ])
-
-    cursor.execute("INSERT INTO count_info %s VALUES %s" % (tuple(count_info_headers), tuple(temp1)))
-    connection.commit()
-    return
 
 
 def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
@@ -173,15 +267,6 @@ def update_stats(guild_id, user, correct_count=True, current_number=1, drink="")
             connection.commit()
 
 
-def update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message,
-                record, record_user, record_timestamp, table_name='count_info'):
-    cursor.execute(
-        f"UPDATE {table_name} SET guild_id = ?, current_count = ?, number_of_resets = ?, last_user = ?, message = ?, channel_id = ?, log_channel_id = ?, greedy_message = ?, record = ?, record_user = ?, record_timestamp = ? WHERE guild_id = '{guild_id}'",
-        (
-        guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record,
-        record_user, record_timestamp,))
-    connection.commit()
-
 
 # -- End SQL Helper Functions --
 
@@ -217,73 +302,6 @@ async def count_help(ctx):
     return
 
 
-@bot.command(name='wrong_message')
-@commands.has_permissions(administrator=True)
-async def wrong_message(ctx, *args):
-    _message = " ".join(args)
-    if _message == 'help':
-        response = """
-        Ändere die Nachricht für den Fall, dass es jemand verkackt hat
-{{{user}}} wird ersetzt durch den Namen der Schande
-        """
-        await ctx.send(response)
-        return
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    test = cursor.fetchone()
-
-    if test is None:
-        create_new_entry(ctx.guild.id,
-                         count_channel_id=ctx.channel.id,
-                         log_channel_id=ctx.channel.id,
-                         guild_message=_message)
-    else:
-        guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = test
-        update_info(guild_id, count, number_of_resets, last_user, _message, channel_id, log_channel_id, greedy_message,
-                    record, record_user, record_timestamp)
-    return
-
-
-@wrong_message.error
-async def wrong_message_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
-        await ctx.send('Du hast leider nicht die erforderlichen Rechte um den Befehl auszuführen')
-    else:
-        raise error
-
-
-@bot.command(name='greedy_message')
-@commands.has_permissions(administrator=True)
-async def greedy_message(ctx, *args):
-    _message = " ".join(args)
-    if _message == 'help':
-        response = """
-        Ändere die Nachricht für den Fall, dass jemand 2 mal nacheinander gezählt hat
-{{{user}}} wird ersetzt durch den Namen der Schande
-        """
-        await ctx.send(response)
-        return
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
-    test = cursor.fetchone()
-    if test is None:
-        create_new_entry(ctx.guild.id,
-                         count_channel_id=ctx.channel.id,
-                         log_channel_id=ctx.channel.id,
-                         greedy_message=_message)
-
-    else:
-        guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, old_greedy_message, record, record_user, record_timestamp = test
-        update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, _message,
-                    record, record_user, record_timestamp)
-    return
-
-
-@wrong_message.error
-async def wrong_message_error(ctx, error):
-    if isinstance(error, commands.CheckFailure):
-        await ctx.send('Du hast leider nicht die erforderlichen Rechte um den Befehl auszuführen')
-    else:
-        raise error
-
 
 @bot.command(name='counting_channel')
 @commands.has_permissions(administrator=True)
@@ -303,13 +321,9 @@ nutze `{PREFIX}counting_channel aktueller_kanal` um im aktuellen Kanal zu zähle
     test = cursor.fetchone()
 
     if test is None:
-        create_new_entry(ctx.guild.id,
-                         count_channel_id=channel_id,
-                         log_channel_id=channel_id, )
+        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
     else:
-        guild_id, count, number_of_resets, last_user, guild_message, old_channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = test
-        update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id,
-                    greedy_message, record, record_user, record_timestamp)
+        COUNT_INFO(ctx.guild.id).update_info(channel_id= channel_id)
     return
 
 
@@ -339,13 +353,10 @@ nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern
     cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
     test = cursor.fetchone()
     if test is None:
-        create_new_entry(ctx.guild.id,
-                         count_channel_id=channel_id,
-                         log_channel_id=channel_id, )
+        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+        COUNT_INFO(ctx.guild.id).update_info(log_channel=channel_id)
     else:
-        guild_id, count, number_of_resets, last_user, guild_message, old_channel_id, old_log_channel_id, greedy_message, record, record_user, record_timestamp = test
-        update_info(guild_id, count, number_of_resets, last_user, guild_message, old_channel_id, channel_id,
-                    greedy_message, record, record_user, record_timestamp)
+        COUNT_INFO(ctx.guild.id).update_info(log_channel=channel_id)
     return
 
 
@@ -361,7 +372,7 @@ async def counting_channel_error(ctx, error):
 # -- Begin Beer Count Commands --
 @bot.command(name='beer_count', aliases=['drink_count', 'drinks'])
 async def beer_count(ctx, args1=""):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     # print("beer_count")
     if args1 == 'me':
@@ -400,7 +411,7 @@ async def beer_count(ctx, args1=""):
 
 @bot.command(name='spend_beer')
 async def spend_beer(ctx, args1=""):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     owing_user = args1[args1.find("<@&") + 3:args1.find(">")]
     owing_user = int(owing_user.replace("!", ""))
@@ -427,7 +438,7 @@ async def spend_beer(ctx, args1=""):
 
 @bot.command(name='server')
 async def server(ctx):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     # print("server")
     # count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'message', 'channel_id', 'log_channel_id', 'greedy_message', 'record', 'record_user', 'record_timestamp']
@@ -454,7 +465,7 @@ async def server(ctx):
 
 @bot.command(name='user')
 async def user(ctx, arg1=""):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     if arg1 == "":
         user = ctx.message.author.id
@@ -494,7 +505,7 @@ async def user(ctx, arg1=""):
 
 @bot.command(name='highscore')
 async def highscore(ctx):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     # print("highscore")
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
@@ -518,7 +529,7 @@ async def highscore(ctx):
 
 @bot.command(name='highcount')
 async def highcount(ctx):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY highest_valid_count DESC")
     db_results = cursor.fetchall()
@@ -541,7 +552,7 @@ async def highcount(ctx):
 
 @bot.command(name='set_drink')
 async def set_drink(ctx, arg1=""):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     if arg1 == "":
         await ctx.send("Was ist dein Lieblingsgetränk?")
@@ -560,7 +571,7 @@ async def set_drink(ctx, arg1=""):
 
 @bot.command(name='delete_me')
 async def delete_me(ctx):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     cursor.execute(f"DELETE FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
     connection.commit()
@@ -570,7 +581,7 @@ async def delete_me(ctx):
 
 @bot.command(name='copy_data')
 async def copy_data(ctx, arg1=""):
-    if not isrightchannel(ctx):
+    if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     if arg1 == "":
         await ctx.send("Bitte gib die Nachrichten ID an")
@@ -585,7 +596,7 @@ async def copy_data(ctx, arg1=""):
     counting_bot_mssg_content = counting_bot_mssg.content
     username = counting_bot_mssg.embeds[0].title
     if username != ctx.author.name + "#" + ctx.author.discriminator:
-        await ctx.send("Sneaky you! These stats aren't yours!")
+        await ctx.send("Na, sag einmal. Geklaut wird hier nicht! Das sind nicht deine Daten!")
         return
     value = counting_bot_mssg.embeds[0].fields[1].value.split("\n")
     # get number from "Total correct: **2**"
@@ -603,17 +614,85 @@ async def copy_data(ctx, arg1=""):
     await ctx.send(
         f"{ctx.author.name}, willkommen zur Party\n<@{counting_bot_mssg.author.id}> hat dein Lieblingsgetränk leider akkustisch nicht mitbekommen. Probiers nochmal mit `{PREFIX}set_drink`")
 
-        
+@bot.command(name='pro_channel')
+@commands.has_permissions(administrator=True)
+async def pro_channel(ctx, arg1):
+    # print("log_channel")
+    channel_id = arg1
+    if channel_id == 'help':
+        response = f"""
+            Ändere den Kanal für den Pro Chanel gesendet werden
+            nutze `{PREFIX}pro_channel aktueller_kanal` um im aktuellen Kanal die Bosse zählen zu lassen
+            """
+        await ctx.send(response)
+        return
+    if channel_id == 'aktueller_kanal':
+        channel_id = ctx.channel.id
+
+    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % ctx.guild.id)
+    test = cursor.fetchone()
+    if test is None:
+        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+        COUNT_INFO(ctx.guild.id).update_info(pro_channel_id=channel_id)
+    else:
+        COUNT_INFO(ctx.guild.id).update_info(pro_channel_id=channel_id)
+    return
+
+@bot.command(name='pro_role')
+@commands.has_permissions(administrator=True)
+async def pro_role(ctx, args1):
+    # print("log_channel")
+    
+    if args1 == 'help':
+        response = f"""
+            Ändere den Kanal für den Pro Chanel gesendet werden
+            nutze `{PREFIX}pro_role @role` um die ProRole festzulegen
+            """
+        await ctx.send(response)
+        return
+    args1 = args1[args1.find("<@&") + 3:args1.find(">")]
+    role_id = int(args1.replace("!", ""))
+    
+    info = COUNT_INFO(ctx.guild.id)
+    if info.exists == False:
+        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+        COUNT_INFO(ctx.guild.id).update_info( pro_role_id=role_id)
+    else:
+        COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
+    return
+
+@bot.command(name='pro_threshold')
+@commands.has_permissions(administrator=True)
+async def pro_threshold(ctx, arg1):
+    if arg1 == 'help':
+        response = f" Setze die Zahl, ab der ein User als Pro ist"
+        await ctx.send(response)
+        return
+    if arg1 == '':
+        await ctx.send("Bitte gib eine Zahl an")
+        return
+    try:
+        arg1 = int(arg1)
+    except:
+        await ctx.send("Bitte gib eine Zahl an")
+        return
+    info = COUNT_INFO(ctx.guild.id)
+    if info.exists == False:
+        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+        COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
+    else:
+        COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
+    return
+
 
 
 # -- Begin Edit Detection --
-## doesn't work yet...........
 @bot.event
 async def on_message_edit(before, after):
     if before.content != after.content:
-        cursor.execute(f"SELECT * FROM count_info WHERE guild_id = '{after.guild.id}'")
-        temp = cursor.fetchone()
-        if temp == None:
+        info = COUNT_INFO(before.guild.id)
+
+        if info.exists is False or info.isrightcountchannel(after) is False:
             return
         try:
             changed_count, trash = before.content.split(' ', 1)
@@ -623,10 +702,14 @@ async def on_message_edit(before, after):
             changed_count = int(changed_count)
         except ValueError:
             return
-
-        guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-        if int(last_user) != int(after.author.id) or changed_count != int(old_count):
-            return
+        if info.is_count_channel(after):
+            if int(info.last_user) != int(after.author.id) or changed_count != int(info.old_count):
+                return
+            old_count = int(info.old_count)
+        if info.is_pro_channel(after):
+            if int(info.pro_last_user) != int(after.author.id) or changed_count != int(info.pro_old_count):
+                return
+            old_count = int(info.pro_old_count)
         await after.add_reaction('😡')
         await after.reply(
             f"HALT STOP, <@{after.author.id}> hat die Nachricht bearbeitet. Die nächste Zahl ist eigentlich {str(int(old_count) + 1)}")
@@ -634,9 +717,8 @@ async def on_message_edit(before, after):
 
 @bot.event
 async def on_message_delete(message):
-    cursor.execute(f"SELECT * FROM count_info WHERE guild_id = '{message.guild.id}'")
-    temp = cursor.fetchone()
-    if temp == None:
+    info = COUNT_INFO(message.guild.id)
+    if info.exists is False:
         return
     try:
         changed_count, trash = message.content.split(' ', 1)
@@ -647,9 +729,14 @@ async def on_message_delete(message):
     except ValueError:
         return
 
-    guild_id, old_count, number_of_resets, last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-    if int(last_user) != int(message.author.id) or changed_count != int(old_count):
-        return
+    if info.is_count_channel(message):
+        if int(info.last_user) != int(message.author.id) or changed_count != int(info.old_count):
+            return
+        old_count = int(info.old_count)
+    if info.is_pro_channel(message):
+        if int(info.pro_last_user) != int(message.author.id) or changed_count != int(info.pro_old_count):
+            return
+        old_count = int(info.pro_old_count)
     await message.channel.send(
         f"HALT STOP, <@{message.author.id}> hat eine Zahl gelöscht. Weiter geht's mit {int(old_count) + 1}")
 
@@ -664,9 +751,13 @@ async def on_message_error(ctx, error):
                       color=Color.red())
     embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
-    channel = bot.get_channel(910230898115506226)
-    await channel.send(ctx.command) # I am trying to send the command with error here
-    await channel.send(error)
+    try:
+        channel = bot.get_channel(910230898115506226)
+        await channel.send(ctx.command) # I am trying to send the command with error here
+        await channel.send(error)
+    except:
+        pass
+
     raise error
 
     
@@ -678,6 +769,7 @@ async def on_message_error(ctx, error):
 PRO_ROLE_ID = 909158530039300126
 # TODO: Admin-only Command um PRO_ROLE_THRESHOLD zu setzen
 PRO_ROLE_THRESHOLD = 50
+
 
 @bot.event
 async def on_message(_message):
@@ -695,93 +787,107 @@ async def on_message(_message):
         current_count = int(current_count)
     except ValueError:
         return
-    cursor.execute("SELECT * FROM count_info WHERE guild_id = '%s'" % _message.guild.id)
-    temp = cursor.fetchone()
-    if temp is None:
+    info = COUNT_INFO(_message.guild.id)
+    if info.exists is False:
         return
     else:
-        # print(temp[5])
-        # print(_message.channel.id)
-        if str(temp[5]) != str(ctx.channel.id):
+        count_option = count_type.NOTHING
+        if info.is_count_channel(_message) is False and info.is_pro_channel(_message) is False:
             return
-        else:
-            old_count = int(temp[1])
-            if str(ctx.message.author.id) == str(temp[3]):
-                # print("greedy")
-                guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-                count = str(0)
-                number_of_resets = str(int(old_number_of_resets) + 1)
-                last_user = str('')
-                update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id,
-                            greedy_message, record, record_user, record_timestamp)
-
-                await ctx.send(str(greedy_message).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
-
-                await ctx.message.add_reaction('🇸')
-                await ctx.message.add_reaction('🇭')
-                await ctx.message.add_reaction('🇦')
-                await ctx.message.add_reaction('🇲')
-                await ctx.message.add_reaction('🇪')
-                channel = bot.get_channel(int(log_channel_id))
-                await channel.send('<@%s> hat bei %s zwei hintereinander gezählt' % (ctx.message.author.id, old_count))
-
-                return
-            if old_count + 1 != current_count:
+        elif info.is_count_channel(_message):
+            old_count = int(info.current_count)
+            if str(ctx.message.author.id) == str(info.last_user):
+                info.update_info(count = 0, number_of_resets= info.number_of_resets + 1, last_user = '')
+                count_option = count_type.GREEDY
+            elif old_count + 1 != current_count:
                 # FALSCHE GEZÄHLT
-                guild_id, old_count, old_number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-                count = str(0)
-                number_of_resets = str(int(old_number_of_resets) + 1)
-                last_user = str('')
-                beers_last_user = str(ctx.message.author.id)
-                update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id,
-                            greedy_message, record, record_user, record_timestamp)
-
-                await ctx.send(str(temp[4]).replace("{{{user}}}", '<@%s>' % str(ctx.message.author.id)))
-
-                channel = bot.get_channel(int(temp[6]))
-
-                await ctx.message.add_reaction('❌')
-                if old_count != 0 and old_last_user != '':
-                    await channel.send(
-                        '<@%s> hat es bei %s verkackt und schuldet <@%s> jetzt ein Getränk!' % (
-                        ctx.message.author.id, str(old_count + 1), old_last_user))
-                    update_beertable(guild_id, old_last_user, beers_last_user, +1)
-
-                update_stats(guild_id, beers_last_user, correct_count=False)
-                
-                return
-            if old_count + 1 == current_count:
+                last_user = info.last_user
+                info.update_info(count = 0, number_of_resets= info.number_of_resets + 1, last_user = '')
+                count_option = count_type.WRONG
+            elif old_count + 1 == current_count:
                 # RICHTIG GEZÄHLT
-                guild_id, old_count, number_of_resets, old_last_user, guild_message, channel_id, log_channel_id, greedy_message, record, record_user, record_timestamp = temp
-
+                
                 count = str(current_count)
                 last_user = str(ctx.message.author.id)
-                if int(record) < current_count:
+                if int(info.record) < current_count:
                     record = count
                     record_user = str(ctx.message.author.id)
                     record_timestamp = datetime.now()
                     await ctx.message.add_reaction('☑️')
+                    info.update_info(count = current_count, last_user = last_user, record = record, record_user = record_user, record_timestamp = record_timestamp)
                 else:
                     await ctx.message.add_reaction('✅')
-
-                update_info(guild_id, count, number_of_resets, last_user, guild_message, channel_id, log_channel_id,
-                            greedy_message, record, record_user, record_timestamp)
-                update_stats(guild_id, ctx.message.author.id, current_number=current_count)
+                    info.update_info(count = current_count, last_user = last_user)
                 
+                update_stats(ctx.guild.id, ctx.message.author.id, current_number=current_count)
+                count_option = count_type.RIGHT
                 # auf PRO_ROLE prüfen
                 cursor.execute(
                     f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
                 temp = cursor.fetchone()
-                if temp is None:
-                    # hat wohl noch nie gezaehlt
-                    return
-                else:
+                if temp is not None and info.pro_role_id is not None:
                     guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
-                    if count_correct >= PRO_ROLE_THRESHOLD:
-                        role = get(bot.get_guild(ctx.guild.id).roles, id=PRO_ROLE_ID)
-                        await msg_user.add_roles(role)
-                return
+                    if int(count_correct) >= int(info.pro_role_threshold):
+                            role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
+                            if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
+                                member = ctx.message.author
+                                await member.add_roles(role)
+                                await ctx.message.add_reaction('🎉')
+                                log_channel = bot.get_channel(info.log_channel_id)
+                                await log_channel.send(f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
+        elif info.is_pro_channel(_message):
+            old_count = int(info.pro_current_count)
+            if str(ctx.message.author.id) == str(info.pro_last_user):
+                info.update_info(pro_count = 0, pro_number_of_resets = info.pro_number_of_resets + 1, pro_last_user = '')
+                count_option = count_type.GREEDY
+            elif old_count + 1 != current_count:
+                # FALSCHE GEZÄHLT
+                last_user = info.pro_last_user
+                info.update_info(pro_count = 0, pro_number_of_resets = info.pro_number_of_resets + 1, pro_last_user = '')
+                count_option = count_type.FALSE
+            elif old_count + 1 == current_count:
+                # RICHTIG GEZÄHLT
+                count = str(current_count)
+                last_user = str(ctx.message.author.id)
+                if int(info.pro_record) < current_count:
+                    record = count
+                    record_user = str(ctx.message.author.id)
+                    record_timestamp = datetime.now()
+                    await ctx.message.add_reaction('☑️')
+                    info.update_info(pro_count = current_count, pro_last_user = last_user, pro_record = record, pro_record_user = record_user, pro_record_timestamp = record_timestamp)
+                else:
+                    await ctx.message.add_reaction('✅')
+                    info.update_info(pro_count = current_count, pro_last_user = last_user)
+                update_stats(ctx.guild.id, ctx.message.author.id, current_number=current_count)
+                count_option = count_type.RIGHT
+                
+           
+        if count_option == count_type.GREEDY:
+            await ctx.send(f'Nanana, <@{ctx.message.author.id}> hat es etwas eilig. Dann starten wir halt von vorne')
+            await ctx.message.add_reaction('🇸')
+            await ctx.message.add_reaction('🇭')
+            await ctx.message.add_reaction('🇦')
+            await ctx.message.add_reaction('🇲')
+            await ctx.message.add_reaction('🇪')
+            channel = bot.get_channel(int(info.log_channel_id))
+            await channel.send('<@%s> hat bei %s zwei hintereinander gezählt' % (ctx.message.author.id, old_count))
+
             return
+        elif count_option == count_type.WRONG:
+            await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt')
+
+            channel = bot.get_channel(info.log_channel_id)
+
+            await ctx.message.add_reaction('❌')
+            if old_count != 0 and info.last_user != '':
+                await channel.send(
+                    '<@%s> hat es bei %s verkackt und schuldet <@%s> jetzt ein Getränk!' % (
+                    ctx.message.author.id, str(old_count + 1), info.last_user))
+                update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
+            update_stats(info.guild_id, ctx.message.author.id, correct_count=False)
+        elif count_option == count_type.RIGHT:
+            update_stats(info.guild_id, ctx.message.author.id, current_number=current_count)
+
 
 
 # -- Begin Initialization code --
