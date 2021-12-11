@@ -781,14 +781,6 @@ async def on_message_error(ctx, error):
     
 # -- Begin counting detection --
 
-
-# temp: Hardcode solution bis Datenbank es unterstuetzt
-# TODO: Admin-only Command um PRO_ROLE_ID zu setzen
-PRO_ROLE_ID = 909158530039300126
-# TODO: Admin-only Command um PRO_ROLE_THRESHOLD zu setzen
-PRO_ROLE_THRESHOLD = 50
-
-
 @bot.event
 async def on_message(_message):
     ctx = await bot.get_context(_message)
