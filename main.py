@@ -254,7 +254,7 @@ def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drin
                 f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{guild_id}', '{user}', '0', '1', '{current_number}', '{last_activity}', '{drink}')")
         connection.commit()
     else:
-        highest_valid_count = temp[3]
+        highest_valid_count = temp[4]
         if current_number > int(highest_valid_count):
             highest_valid_count = str(current_number)
         if correct_count is True:
@@ -853,7 +853,7 @@ async def on_message(_message):
                 # FALSCHE GEZÄHLT
                 last_user = info.pro_last_user
                 info.update_info(pro_current_count= 0, pro_number_of_resets = info.pro_number_of_resets + 1, pro_last_user = '')
-                count_option = count_type.FALSE
+                count_option = count_type.WRONG
             elif old_count + 1 == current_count:
                 # RICHTIG GEZÄHLT
                 count = str(current_count)
@@ -878,7 +878,7 @@ async def on_message(_message):
             await ctx.message.add_reaction('🇲')
             await ctx.message.add_reaction('🇪')
             channel = bot.get_channel(int(info.log_channel_id))
-            await channel.send('<@%s> hat bei %s zwei hintereinander gezählt' % (ctx.message.author.id, old_count))
+            await channel.send(f'<@{ctx.message.author.id}> hat in {ctx.channel.mention} bei {old_count} zwei hintereinander gezählt')
 
             return
         elif count_option == count_type.WRONG:
@@ -887,7 +887,7 @@ async def on_message(_message):
             await ctx.message.add_reaction('❌')
             if old_count != 0 and info.last_user != '':
                 await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt')
-                await channel.send(f'<@{ctx.message.author.id}> hat es bei {old_count + 1} verkackt und schuldet <@{info.last_user}> jetzt ein Getränk!')
+                await channel.send(f'<@{ctx.message.author.id}> hat es bei {old_count + 1} in {ctx.channel.mention} verkackt und schuldet <@{info.last_user}> jetzt ein Getränk!')
                 update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
             elif current_count == 0:
                 await ctx.send(f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
