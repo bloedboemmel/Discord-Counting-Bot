@@ -285,15 +285,16 @@ async def count_help(ctx):
                   description="Alle Befehle",
                   color=Color.purple())
     embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
-    message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal einzusehen\n"
-    message += f"`{PREFIX}counting_channel @anderer_kanal` um den Kanal in dem gezählt wird zu ändern\n"
-    message += f"`{PREFIX}log_channel aktueller_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
-    message += f"`{PREFIX}log_channel @anderer_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
-    message += f"`{PREFIX}pro_channel aktueller_kanal` um den Kanal für Profis zu ändern\n"
-    message += f"`{PREFIX}pro_channel @anderer_kanal` um den Kanal für Profis zu ändern\n"
-    message += f"`{PREFIX}pro_role @rolle` um die Rolle für Profis zu ändern\n"
-    message += f"`{PREFIX}pro_threshold anzahl` um den Threshold zur Profi-Berechtigung zu ändern\n"
-    embed.add_field(name="Admin Befehle", value=message, inline=False)
+    if ctx.author.guild_permissions.administrator is True:
+        message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal einzusehen\n"
+        message += f"`{PREFIX}counting_channel @anderer_kanal` um den Kanal in dem gezählt wird zu ändern\n"
+        message += f"`{PREFIX}log_channel aktueller_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
+        message += f"`{PREFIX}log_channel @anderer_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
+        message += f"`{PREFIX}pro_channel aktueller_kanal` um den Kanal für Profis zu ändern\n"
+        message += f"`{PREFIX}pro_channel @anderer_kanal` um den Kanal für Profis zu ändern\n"
+        message += f"`{PREFIX}pro_role @rolle` um die Rolle für Profis zu ändern\n"
+        message += f"`{PREFIX}pro_threshold anzahl` um den Threshold zur Profi-Berechtigung zu ändern\n"
+        embed.add_field(name="Admin Befehle", value=message, inline=False)
     message = f"`{PREFIX}server` - Zeige die Statistiken für den ganzen Server\n"
     message += f"`{PREFIX}highscore` - Zeige die 10 Nutzer, die am häufigsten richtig gezählt haben\n"
     message += f"`{PREFIX}highcount` - Zeige die 10 Nutzer, welche die höchsten Zahlen getippt haben\n"
