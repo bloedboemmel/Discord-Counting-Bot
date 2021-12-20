@@ -1,7 +1,15 @@
 # Discord Counting Bot with Beer-Counter
-### Heavily inspired by [AlexVerricos Counting_bot](https://github.com/AlexVerrico/Discord-Counting-Bot), but adjusted a lot for the beer drinking habits of students.
+Heavily inspired by [AlexVerricos Counting_bot](https://github.com/AlexVerrico/Discord-Counting-Bot), but adjusted a lot for the beer drinking habits of students.
 
-## How to install and run
+
+
+# Invite the Bot or Run it yourself. It is your choice
+![Trust me](https://i.imgflip.com/1kv6ks.jpg)
+
+## Run the fully functioning bot
+[Invite this bot to your server](https://discord.com/api/oauth2/authorize?client_id=907378896004063272&permissions=137707727936&redirect_uri=https%3A%2F%2Fdiscord.com%2Fapi%2Foauth2%2Fauthorize&scope=bot)
+
+## Or install and run it yourself
 1. Make sure you’re logged on to the [Discord website](https://discord.com/).
 2. Navigate to the [application page](https://discordapp.com/developers/applications/)
 3. Click on the “New Application” button.
