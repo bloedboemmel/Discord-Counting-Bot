@@ -1,10 +1,11 @@
 import sqlite3
 import os
+import random
 from discord.client import Client
 from discord.enums import Enum
 from dotenv import load_dotenv
-from discord.ext import commands
-from discord import Intents, Embed, Color, guild, message, ext
+from discord.ext import commands, tasks
+from discord import Intents, Embed, Color, guild, message, ext, Activity, Game, ActivityType
 from discord.utils import get
 
 from datetime import datetime
@@ -898,6 +899,31 @@ async def on_message(_message):
         elif count_option == count_type.RIGHT:
             update_stats(ctx, info.guild_id, ctx.message.author.id, current_number=current_count)
 
+@bot.event
+async def on_ready():
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
+    changepresence.start()
+
+@tasks.loop(seconds=300)  # How often the bot should change status, mine is set on every 40 seconds
+async def changepresence():
+    game = [
+        Game(name="Pferderennen"),
+        Game(name="Busfahren"),
+        Activity(type=ActivityType.listening, name="Radler ist kein Alkohol"),
+        Activity(type=ActivityType.streaming, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
+        Activity(type=ActivityType.watching, name="2 Girls, 1 Cup"),
+        Game(name="Kingscup"),
+        Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim"),
+        Activity(type=ActivityType.listening, name="Ham kummst!"),
+        Game(name=f"{PREFIX}help")
+        ]
+   
+    x = game[random.randint(0, len(game) - 1)]
+      
+    await bot.change_presence(activity=x)   
 
 
 # -- Begin Initialization code --
