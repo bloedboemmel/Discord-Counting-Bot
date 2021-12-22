@@ -335,6 +335,7 @@ nutze `{PREFIX}counting_channel aktueller_kanal` um im aktuellen Kanal zu zähle
         info.create_new_entry(ctx)
     else:
         info.update_info(channel_id= channel_id)
+    await ctx.message.add_reaction('✔')
     return
 
 
@@ -367,6 +368,7 @@ nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern
         info.update_info(log_channel_id=channel_id)
     else:
         info.update_info(log_channel_id=channel_id)
+    await ctx.message.add_reaction('✔')
     return
 
 
@@ -587,7 +589,7 @@ async def set_drink(ctx, arg1=""):
         cursor.execute(
             f"UPDATE stats SET drink = '{arg1}' WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.author.id}'")
         connection.commit()
-        await ctx.send(f"{ctx.author.name}s Lieblingsgetränk ist jetzt {arg1} PROST!")
+        await ctx.send(f"{ctx.author.name}s Lieblingsgetränk ist jetzt '{arg1}'. PROST!")
 
 
 @bot.command(name='delete_me')
@@ -656,6 +658,7 @@ async def pro_channel(ctx, arg1):
         info.update_info(pro_channel_id=channel_id)
     else:
         info.update_info(pro_channel_id=channel_id)
+    await ctx.message.add_reaction('✔')
     return
 
 @bot.command(name='pro_role')
@@ -679,6 +682,7 @@ async def pro_role(ctx, args1):
         COUNT_INFO(ctx.guild.id).update_info( pro_role_id=role_id)
     else:
         COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
+    await ctx.message.add_reaction('✔')
     return
 
 @bot.command(name='pro_threshold')
@@ -702,6 +706,7 @@ async def pro_threshold(ctx, arg1):
         COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
     else:
         COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
+    await ctx.message.add_reaction('✔')
     return
 
 
