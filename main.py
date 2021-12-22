@@ -770,13 +770,13 @@ async def on_message_edit(before, after):
         except ValueError:
             return
         if info.is_count_channel(after):
-            if int(info.last_user) != int(after.author.id) or changed_count != int(info.old_count):
+            if int(info.last_user) != int(after.author.id) or changed_count != int(info.current_count):
                 return
-            old_count = int(info.old_count)
+            old_count = int(info.current_count)
         if info.is_pro_channel(after):
-            if int(info.pro_last_user) != int(after.author.id) or changed_count != int(info.pro_old_count):
+            if int(info.pro_last_user) != int(after.author.id) or changed_count != int(info.pro_current_count):
                 return
-            old_count = int(info.pro_old_count)
+            old_count = int(info.pro_current_count)
         await after.add_reaction('😡')
         await after.reply(
             f"HALT STOP, <@{after.author.id}> hat die Nachricht bearbeitet. Die nächste Zahl ist eigentlich {str(int(old_count) + 1)}")
@@ -797,13 +797,13 @@ async def on_message_delete(message):
         return
 
     if info.is_count_channel(message):
-        if int(info.last_user) != int(message.author.id) or changed_count != int(info.old_count):
+        if int(info.last_user) != int(message.author.id) or changed_count != int(info.current_count):
             return
-        old_count = int(info.old_count)
+        old_count = int(info.current_count)
     if info.is_pro_channel(message):
-        if int(info.pro_last_user) != int(message.author.id) or changed_count != int(info.pro_old_count):
+        if int(info.pro_last_user) != int(message.author.id) or changed_count != int(info.pro_current_count):
             return
-        old_count = int(info.pro_old_count)
+        old_count = int(info.pro_current_count)
     await message.channel.send(
         f"HALT STOP, <@{message.author.id}> hat eine Zahl gelöscht. Weiter geht's mit {int(old_count) + 1}")
 
