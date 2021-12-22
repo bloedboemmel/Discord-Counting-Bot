@@ -295,6 +295,7 @@ async def count_help(ctx):
         message += f"`{PREFIX}pro_channel @anderer_kanal` um den Kanal für Profis zu ändern\n"
         message += f"`{PREFIX}pro_role @rolle` um die Rolle für Profis zu ändern\n"
         message += f"`{PREFIX}pro_threshold anzahl` um den Threshold zur Profi-Berechtigung zu ändern\n"
+        message += f"`{PREFIX}admin_info` zeigt dir die aktuellen Werte der obigen Variablen an\n"
         embed.add_field(name="Admin Befehle", value=message, inline=False)
     message = f"`{PREFIX}server` - Zeige die Statistiken für den ganzen Server\n"
     message += f"`{PREFIX}highscore` - Zeige die 10 Nutzer, die am häufigsten richtig gezählt haben\n"
@@ -308,34 +309,57 @@ async def count_help(ctx):
     message += f"`{PREFIX}copy_data message_id` - Kopiert die Daten vom originalen Bot\n"
     message += f"`{PREFIX}delete_me` Löscht deine Daten aus dem Metaverse (tschüss)"
     embed.add_field(name="User-Commands", value=message, inline=False)
-    embed.set_footer(text=f"{PREFIX} help")
+    embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
     return
 
+
+@bot.command(name='admin_info')
+@commands.has_permissions(administrator=True)
+async def admin_info(ctx):
+    try:
+        info = COUNT_INFO(ctx.guild.id)
+        message = f"counting_channel: <#{info.channel_id}>\n"
+        message += f"log_channel: <#{info.log_channel_id}>\n"
+        message += f"pro_channel: <#{info.pro_channel_id}>\n"
+        message += f"pro_role: <@{info.pro_role_id}>\n"
+        message += f"pro_threshold: <@{info.pro_role_threshold}>"
+        embed = Embed(title="Aktuelle Konfiguration",
+                      description=message,
+                        color=Color.purple())
+        await ctx.send(embed=embed)
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
+    return
 
 
 @bot.command(name='counting_channel')
 @commands.has_permissions(administrator=True)
 async def counting_channel(ctx, arg1):
     # print("counting_channel")
-    channel_id = arg1
-    if channel_id == 'help':
-        response = f"""
-            Ändere die ID des Kanals in dem gezählt wird
-nutze `{PREFIX}counting_channel aktueller_kanal` um im aktuellen Kanal zu zählen
-            """
-        await ctx.send(response)
-        return
-    if channel_id == 'aktueller_kanal':
-        channel_id = ctx.channel.id
-    
-    info = COUNT_INFO(ctx.guild.id)
+    try:
+        channel_id = arg1
+        if channel_id == 'help':
+            response = f"""
+                Ändere die ID des Kanals in dem gezählt wird
+    nutze `{PREFIX}counting_channel aktueller_kanal` um im aktuellen Kanal zu zählen
+                """
+            await ctx.send(response)
+            return
+        if channel_id == 'aktueller_kanal':
+            channel_id = ctx.channel.id
 
-    if info.exists is False:
-        info.create_new_entry(ctx)
-    else:
-        info.update_info(channel_id= channel_id)
-    await ctx.message.add_reaction('✔')
+        info = COUNT_INFO(ctx.guild.id)
+
+        if info.exists is False:
+            info.create_new_entry(ctx)
+        else:
+            info.update_info(channel_id= channel_id)
+        await ctx.message.add_reaction('✔')
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
     return
 
 
@@ -351,26 +375,30 @@ async def counting_channel_error(ctx, error):
 @commands.has_permissions(administrator=True)
 async def log_channel(ctx, arg1):
     # print("log_channel")
-    channel_id = arg1
-    if channel_id == 'help':
-        response = f"""
-            Ändere den Kanal in dem Log Einträge gesendet werden
-nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern 
-            """
-        await ctx.send(response)
-        return
-    if channel_id == 'aktueller_kanal':
-        channel_id = ctx.channel.id
-    else:
-        channel_id = channel_id.split("<#")[1].split(">")[0]
+    try:
+        channel_id = arg1
+        if channel_id == 'help':
+            response = f"""
+                Ändere den Kanal in dem Log Einträge gesendet werden
+    nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern 
+                """
+            await ctx.send(response)
+            return
+        if channel_id == 'aktueller_kanal':
+            channel_id = ctx.channel.id
+        else:
+            channel_id = channel_id.split("<#")[1].split(">")[0]
 
-    info = COUNT_INFO(ctx.guild.id)
-    if info.exists is False:
-        info.create_new_entry(ctx)
-        info.update_info(log_channel_id=channel_id)
-    else:
-        info.update_info(log_channel_id=channel_id)
-    await ctx.message.add_reaction('✔')
+        info = COUNT_INFO(ctx.guild.id)
+        if info.exists is False:
+            info.create_new_entry(ctx)
+            info.update_info(log_channel_id=channel_id)
+        else:
+            info.update_info(log_channel_id=channel_id)
+        await ctx.message.add_reaction('✔')
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
     return
 
 
@@ -642,74 +670,85 @@ async def copy_data(ctx, arg1=""):
 @bot.command(name='pro_channel')
 @commands.has_permissions(administrator=True)
 async def pro_channel(ctx, arg1):
-    # print("log_channel")
-    channel_id = arg1
-    if channel_id == 'help':
-        response = f"""
-            Ändere den Kanal für den Pro Chanel gesendet werden
-            nutze `{PREFIX}pro_channel aktueller_kanal` um im aktuellen Kanal die Bosse zählen zu lassen
-            """
-        await ctx.send(response)
-        return
-    if channel_id == 'aktueller_kanal':
-        channel_id = ctx.channel.id
-    else:
-        channel_id = channel_id.split("<#")[1].split(">")[0]
-    info = COUNT_INFO(ctx.guild.id)
-    if info.exists is False:
-        info.create_new_entry(ctx)
-        info.update_info(pro_channel_id=channel_id)
-    else:
-        info.update_info(pro_channel_id=channel_id)
-    await ctx.message.add_reaction('✔')
+    try:
+        # print("log_channel")
+        channel_id = arg1
+        if channel_id == 'help':
+            response = f"""
+                Ändere den Kanal für den Pro Chanel gesendet werden
+                nutze `{PREFIX}pro_channel aktueller_kanal` um im aktuellen Kanal die Bosse zählen zu lassen
+                """
+            await ctx.send(response)
+            return
+        if channel_id == 'aktueller_kanal':
+            channel_id = ctx.channel.id
+        else:
+            channel_id = channel_id.split("<#")[1].split(">")[0]
+        info = COUNT_INFO(ctx.guild.id)
+        if info.exists is False:
+            info.create_new_entry(ctx)
+            info.update_info(pro_channel_id=channel_id)
+        else:
+            info.update_info(pro_channel_id=channel_id)
+        await ctx.message.add_reaction('✔')
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
     return
 
 @bot.command(name='pro_role')
 @commands.has_permissions(administrator=True)
 async def pro_role(ctx, args1):
     # print("log_channel")
-    
-    if args1 == 'help':
-        response = f"""
-            Ändere den Kanal für den Pro Chanel gesendet werden
-            nutze `{PREFIX}pro_role @role` um die ProRole festzulegen
-            """
-        await ctx.send(response)
-        return
-    args1 = args1[args1.find("<@&") + 3:args1.find(">")]
-    role_id = int(args1.replace("!", ""))
-    
-    info = COUNT_INFO(ctx.guild.id)
-    if info.exists == False:
-        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
-        COUNT_INFO(ctx.guild.id).update_info( pro_role_id=role_id)
-    else:
-        COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
-    await ctx.message.add_reaction('✔')
+    try:
+        if args1 == 'help':
+            response = f"""
+                Ändere den Kanal für den Pro Chanel gesendet werden
+                nutze `{PREFIX}pro_role @role` um die ProRole festzulegen
+                """
+            await ctx.send(response)
+            return
+        args1 = args1[args1.find("<@&") + 3:args1.find(">")]
+        role_id = int(args1.replace("!", ""))
+
+        info = COUNT_INFO(ctx.guild.id)
+        if info.exists == False:
+            COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+            COUNT_INFO(ctx.guild.id).update_info( pro_role_id=role_id)
+        else:
+            COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
+        await ctx.message.add_reaction('✔')
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
     return
 
 @bot.command(name='pro_threshold')
 @commands.has_permissions(administrator=True)
 async def pro_threshold(ctx, arg1):
-    if arg1 == 'help':
-        response = f" Setze die Zahl, ab der ein User als Pro ist"
-        await ctx.send(response)
-        return
-    if arg1 == '':
-        await ctx.send("Bitte gib eine Zahl an")
-        return
     try:
-        arg1 = int(arg1)
-    except:
-        await ctx.send("Bitte gib eine Zahl an")
-        return
-    info = COUNT_INFO(ctx.guild.id)
-    if info.exists == False:
-        COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
-        COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
-    else:
-        COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
-    await ctx.message.add_reaction('✔')
+        if arg1 == 'help':
+            response = f" Setze die Zahl, ab der ein User als Pro ist"
+            await ctx.send(response)
+            return
+        if arg1 == '':
+            await ctx.send("Bitte gib eine Zahl an")
+            return
+        try:
+            arg1 = int(arg1)
+        except:
+            await ctx.send("Bitte gib eine Zahl an")
+            return
+        info = COUNT_INFO(ctx.guild.id)
+        if info.exists == False:
+            COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
+            COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
+        else:
+            COUNT_INFO(ctx.guild.id).update_info(pro_role_threshold=arg1)
+        await ctx.message.add_reaction('✔')
+    except Exception as e:
+        await ctx.message.add_reaction('❌')
+        raise e
     return
 
 
