@@ -759,7 +759,7 @@ async def on_message_edit(before, after):
     if before.content != after.content:
         info = COUNT_INFO(before.guild.id)
 
-        if info.exists is False or info.isrightcountchannel(after) is False:
+        if info.exists is False or (info.is_count_channel(after) or info.is_pro_channel(after)) is False:
             return
         try:
             changed_count, trash = before.content.split(' ', 1)
