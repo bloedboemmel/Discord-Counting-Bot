@@ -361,6 +361,8 @@ nutze `{PREFIX}log_channel aktueller_kanal` um im aktuellen Kanal zu loggern
         return
     if channel_id == 'aktueller_kanal':
         channel_id = ctx.channel.id
+    else:
+        channel_id = channel_id.split("<#")[1].split(">")[0]
 
     info = COUNT_INFO(ctx.guild.id)
     if info.exists is False:
@@ -651,7 +653,8 @@ async def pro_channel(ctx, arg1):
         return
     if channel_id == 'aktueller_kanal':
         channel_id = ctx.channel.id
-
+    else:
+        channel_id = channel_id.split("<#")[1].split(">")[0]
     info = COUNT_INFO(ctx.guild.id)
     if info.exists is False:
         info.create_new_entry(ctx)
@@ -893,8 +896,7 @@ async def on_message(_message):
             channel = bot.get_channel(info.log_channel_id)
             await ctx.message.add_reaction('❌')
             if old_count != 0 and info.last_user != '':
-                await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt')
-                await channel.send(f'<@{ctx.message.author.id}> hat es bei {old_count + 1} in {ctx.channel.mention} verkackt und schuldet <@{info.last_user}> jetzt ein Getränk!')
+                await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{info.last_user}> jetzt ein Getränk!')
                 update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
             elif current_count == 0:
                 await ctx.send(f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
@@ -923,6 +925,7 @@ async def changepresence():
         Game(name="Kingscup"),
         Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim"),
         Activity(type=ActivityType.listening, name="Ham kummst!"),
+        Activity(type=ActivityType.competing, name="Naked Mile"),
         Game(name=f"{PREFIX}help")
         ]
    
