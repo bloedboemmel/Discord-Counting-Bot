@@ -821,6 +821,9 @@ async def on_message_delete(message):
 
 # -- Send error to bloedboemmel- server --
 @bot.event
+async def on_command_error(ctx, error):
+    on_message_error(ctx, error)
+@bot.event
 async def on_message_error(ctx, error):
     if isinstance(error, ext.commands.errors.CommandNotFound):
         return
@@ -929,7 +932,8 @@ async def on_message(_message):
                             member = ctx.message.author
                             await member.add_roles(role)
                             await ctx.message.add_reaction('🎉')
-                            log_channel = bot.get_channel(info.log_channel_id)
+                            log_channel = bot.get_channel(int(info.log_channel_id))
+                            log_channel = ctx if log_channel is None else log_channel
                             await log_channel.send(
                                 f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
         elif info.is_pro_channel(_message):
