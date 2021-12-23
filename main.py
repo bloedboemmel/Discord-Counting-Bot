@@ -295,7 +295,7 @@ async def count_help(ctx):
                   color=Color.purple())
     embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
     if ctx.author.guild_permissions.administrator is True:
-        message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal einzusehen\n"
+        message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal zu kontrollieren\n"
         message += f"`{PREFIX}counting_channel @anderer_kanal` um den Kanal in dem gezählt wird zu ändern\n"
         message += f"`{PREFIX}log_channel aktueller_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
         message += f"`{PREFIX}log_channel @anderer_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
