@@ -23,8 +23,10 @@ PREFIX = "!count "
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 DbName = 'count.sqlite'
-count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user','channel_id', 'log_channel_id', 'record', 'record_user', 'record_timestamp', 
-                'pro_role_threshold', 'pro_role_id', 'pro_channel_id', 'pro_current_count', 'pro_number_of_resets', 'pro_last_user', 'pro_record', 'pro_record_user', 'pro_record_timestamp']
+count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_user', 'channel_id', 'log_channel_id',
+                      'record', 'record_user', 'record_timestamp',
+                      'pro_role_threshold', 'pro_role_id', 'pro_channel_id', 'pro_current_count',
+                      'pro_number_of_resets', 'pro_last_user', 'pro_record', 'pro_record_user', 'pro_record_timestamp']
 stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink']
 beer_headers = ['guild_id', 'user', 'owed_user', 'count']
 connection = sqlite3.connect(DbName)
@@ -37,10 +39,11 @@ class count_type(Enum):
     WRONG = 2
     GREEDY = 3
 
+
 class COUNT_INFO():
     exists = False
     guild_id = None
-    
+
     current_count = 0
     number_of_resets = 0
     last_user = None
@@ -58,6 +61,7 @@ class COUNT_INFO():
     pro_record = 0
     pro_record_user = None
     pro_record_timestamp = None
+
     def __init__(self, guild_id):
         self.guild_id = guild_id
         temp = self.get_count_info(guild_id)
@@ -82,14 +86,13 @@ class COUNT_INFO():
         self.pro_record_user = temp[16]
         self.pro_record_timestamp = temp[17]
 
-
     def get_count_info(self, guild_id):
         cursor.execute(f"SELECT * FROM count_info WHERE guild_id = {guild_id}")
         temp = cursor.fetchone()
         if temp is None:
             return None
         return temp
-    
+
     def is_log_channel(self, ctx):
         if self.log_channel_id is None:
             return False
@@ -104,7 +107,7 @@ class COUNT_INFO():
             return False
         return True
 
-    def is_pro_channel(self,ctx):
+    def is_pro_channel(self, ctx):
         if self.pro_channel_id is None:
             return False
         if int(self.pro_channel_id) != int(ctx.channel.id):
@@ -112,55 +115,62 @@ class COUNT_INFO():
         return True
 
     def create_new_entry(self, ctx):
-        
+
         temp1 = [
-            ctx.guild.id, #guild_id
-            0, #current_count
-            0, #number_of_resets
-            None, #last_user
-            ctx.channel.id, #channel_id
-            ctx.channel.id, #log_channel_id
-            0, #record
-            None, #record_user
-            None, #record_timestamp
-            100000000000000000, #pro_role_threshold
-            None, #pro_role_id
-            None, #pro_channel_id
-            0, #pro_current_count
-            0, #pro_number_of_resets
-            None, #pro_last_user
-            0, #pro_record
-            None, #pro_record_user
-            None #pro_record_timestamp
+            ctx.guild.id,  # guild_id
+            0,  # current_count
+            0,  # number_of_resets
+            None,  # last_user
+            ctx.channel.id,  # channel_id
+            ctx.channel.id,  # log_channel_id
+            0,  # record
+            None,  # record_user
+            None,  # record_timestamp
+            100000000000000000,  # pro_role_threshold
+            None,  # pro_role_id
+            None,  # pro_channel_id
+            0,  # pro_current_count
+            0,  # pro_number_of_resets
+            None,  # pro_last_user
+            0,  # pro_record
+            None,  # pro_record_user
+            None  # pro_record_timestamp
         ]
         cursor.execute("INSERT INTO count_info VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", temp1)
         connection.commit()
         return True
-    # info = [guild_id, current_count, number_of_resets, last_user, channel_id, log_channel_id, record, record_user, record_timestamp, pro_role_id, pro_channel_id, pro_current_count, pro_number_of_resets, pro_last_user, pro_record, pro_record_user, pro_record_timestamp]  
-    def update_info(self, count=-1, number_of_resets=-1, last_user=None, channel_id=None, log_channel_id= None, record= -1, record_user=None, record_timestamp=None, pro_role_threshold = -1, pro_role_id=None, pro_channel_id=None, pro_current_count=-1, pro_number_of_resets=-1, pro_last_user=None, pro_record=-1, pro_record_user=None, pro_record_timestamp=None):
+
+    # info = [guild_id, current_count, number_of_resets, last_user, channel_id, log_channel_id, record, record_user, record_timestamp, pro_role_id, pro_channel_id, pro_current_count, pro_number_of_resets, pro_last_user, pro_record, pro_record_user, pro_record_timestamp]
+    def update_info(self, count=-1, number_of_resets=-1, last_user=None, channel_id=None, log_channel_id=None,
+                    record=-1, record_user=None, record_timestamp=None, pro_role_threshold=-1, pro_role_id=None,
+                    pro_channel_id=None, pro_current_count=-1, pro_number_of_resets=-1, pro_last_user=None,
+                    pro_record=-1, pro_record_user=None, pro_record_timestamp=None):
         temp = [
-            self.guild_id, #guild_id
-            self.current_count if count == -1 else count, #current_count
-            self.number_of_resets if number_of_resets == -1 else number_of_resets, #number_of_resets
-            self.last_user if last_user is None else last_user, #last_user
-            self.channel_id if channel_id is None else channel_id, #channel_id
-            self.log_channel_id if log_channel_id is None else log_channel_id, #log_channel_id
-            self.record if record == -1 else record, #record
-            self.record_user if record_user is None else record_user, #record_user
-            self.record_timestamp if record_timestamp is None else record_timestamp, #record_timestamp
-            self.pro_role_threshold if pro_role_threshold == -1 else pro_role_threshold, #pro_role_threshold
-            self.pro_role_id if pro_role_id is None else pro_role_id, #pro_role_id
-            self.pro_channel_id if pro_channel_id is None else pro_channel_id, #pro_channel_id
-            self.pro_current_count if pro_current_count == -1 else pro_current_count, #pro_current_count
-            self.pro_number_of_resets if pro_number_of_resets == -1 else pro_number_of_resets, #pro_number_of_resets
-            self.pro_last_user if pro_last_user is None else pro_last_user, #pro_last_user
-            self.pro_record if pro_record == -1 else pro_record, #pro_record
-            self.pro_record_user if pro_record_user is None else pro_record_user, #pro_record_user
-            self.pro_record_timestamp if pro_record_timestamp is None else pro_record_timestamp #pro_record_timestamp
+            self.guild_id,  # guild_id
+            self.current_count if count == -1 else count,  # current_count
+            self.number_of_resets if number_of_resets == -1 else number_of_resets,  # number_of_resets
+            self.last_user if last_user is None else last_user,  # last_user
+            self.channel_id if channel_id is None else channel_id,  # channel_id
+            self.log_channel_id if log_channel_id is None else log_channel_id,  # log_channel_id
+            self.record if record == -1 else record,  # record
+            self.record_user if record_user is None else record_user,  # record_user
+            self.record_timestamp if record_timestamp is None else record_timestamp,  # record_timestamp
+            self.pro_role_threshold if pro_role_threshold == -1 else pro_role_threshold,  # pro_role_threshold
+            self.pro_role_id if pro_role_id is None else pro_role_id,  # pro_role_id
+            self.pro_channel_id if pro_channel_id is None else pro_channel_id,  # pro_channel_id
+            self.pro_current_count if pro_current_count == -1 else pro_current_count,  # pro_current_count
+            self.pro_number_of_resets if pro_number_of_resets == -1 else pro_number_of_resets,  # pro_number_of_resets
+            self.pro_last_user if pro_last_user is None else pro_last_user,  # pro_last_user
+            self.pro_record if pro_record == -1 else pro_record,  # pro_record
+            self.pro_record_user if pro_record_user is None else pro_record_user,  # pro_record_user
+            self.pro_record_timestamp if pro_record_timestamp is None else pro_record_timestamp  # pro_record_timestamp
         ]
-        cursor.execute(f"UPDATE count_info SET guild_id = ?,current_count = ?, number_of_resets = ?, last_user = ?, channel_id = ?, log_channel_id = ?, record = ?, record_user = ?, record_timestamp = ?, pro_role_threshold = ?, pro_role_id = ?, pro_channel_id = ?, pro_current_count = ?, pro_number_of_resets = ?, pro_last_user = ?, pro_record = ?, pro_record_user = ?, pro_record_timestamp = ? WHERE guild_id = {self.guild_id}", temp)
+        cursor.execute(
+            f"UPDATE count_info SET guild_id = ?,current_count = ?, number_of_resets = ?, last_user = ?, channel_id = ?, log_channel_id = ?, record = ?, record_user = ?, record_timestamp = ?, pro_role_threshold = ?, pro_role_id = ?, pro_channel_id = ?, pro_current_count = ?, pro_number_of_resets = ?, pro_last_user = ?, pro_record = ?, pro_record_user = ?, pro_record_timestamp = ? WHERE guild_id = {self.guild_id}",
+            temp)
         connection.commit()
         return True
+
 
 # -- Begin SQL Helper Functions --
 def create_table(dbname, tablename, tableheader):
@@ -171,12 +181,11 @@ def create_table(dbname, tablename, tableheader):
     except sqlite3.OperationalError:
         return
 
+
 def insert_values_into_table(dbname, tablename, values):
     if os.path.exists(dbname) is True:
         cursor.execute("INSERT INTO %s VALUES %s" % (tablename, tuple(values)))
         connection.commit()
-
-
 
 
 def check_if_table_exists(dbname, tablename, tableheaders):
@@ -184,6 +193,7 @@ def check_if_table_exists(dbname, tablename, tableheaders):
         cursor.execute("SELECT * FROM %s" % tablename)
     except sqlite3.OperationalError:
         create_table(dbname, tablename, tableheaders)
+
 
 def time_since(strtime):
     now = datetime.now()
@@ -203,7 +213,6 @@ def time_since(strtime):
         return f'vor {minutes} Minuten'
     else:
         return 'jetzt gerade'
-
 
 
 def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_beer=False):
@@ -272,7 +281,6 @@ def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drin
             connection.commit()
 
 
-
 # -- End SQL Helper Functions --
 
 
@@ -322,11 +330,11 @@ async def admin_info(ctx):
         message = f"counting_channel: <#{info.channel_id}>\n"
         message += f"log_channel: <#{info.log_channel_id}>\n"
         message += f"pro_channel: <#{info.pro_channel_id}>\n"
-        message += f"pro_role: <@{info.pro_role_id}>\n"
-        message += f"pro_threshold: <@{info.pro_role_threshold}>"
+        message += f"pro_role: <@&{info.pro_role_id}>\n"
+        message += f"pro_threshold: {info.pro_role_threshold}"
         embed = Embed(title="Aktuelle Konfiguration",
                       description=message,
-                        color=Color.purple())
+                      color=Color.purple())
         await ctx.send(embed=embed)
     except Exception as e:
         await ctx.message.add_reaction('❌')
@@ -355,7 +363,7 @@ async def counting_channel(ctx, arg1):
         if info.exists is False:
             info.create_new_entry(ctx)
         else:
-            info.update_info(channel_id= channel_id)
+            info.update_info(channel_id=channel_id)
         await ctx.message.add_reaction('✔')
     except Exception as e:
         await ctx.message.add_reaction('❌')
@@ -475,14 +483,15 @@ async def spend_beer(ctx, args1=""):
     if new_count == 0:
         await ctx.send(f"<@{owing_user}> und du sind jetzt quitt!")
         return
-    await ctx.send(f"Danke für die Info!, <@{owing_user}> schuldet <@{user}> jetzt {new_count} Getränk" + ("e" if new_count > 1 else ""))
+    await ctx.send(f"Danke für die Info!, <@{owing_user}> schuldet <@{user}> jetzt {new_count} Getränk" + (
+        "e" if new_count > 1 else ""))
 
 
 @bot.command(name='server')
 async def server(ctx):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
-    
+
     info = COUNT_INFO(ctx.guild.id)
     if info.exists == False:
         await ctx.send("Dieser Server hat noch keine Stats")
@@ -511,7 +520,7 @@ async def server(ctx):
         message += f"`High Score:` {info.pro_record} ({timestr})\n"
         message += f"`Erreicht von:` <@{info.pro_record_user}>\n"
         embed.add_field(name="Die Profis", value=message, inline=False)
-   
+
     embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
 
@@ -645,7 +654,7 @@ async def copy_data(ctx, arg1=""):
         await ctx.send(f"Dafür musst du erst mit `{PREFIX}delete_me` deine Statistik löschen (tut auch gar nicht weh) ")
         return
     counting_bot_mssg = await ctx.channel.fetch_message(int(arg1))
-    
+
     counting_bot_mssg_content = counting_bot_mssg.content
     username = counting_bot_mssg.embeds[0].title
     if username != ctx.author.name + "#" + ctx.author.discriminator:
@@ -666,6 +675,7 @@ async def copy_data(ctx, arg1=""):
     connection.commit()
     await ctx.send(
         f"{ctx.author.name}, willkommen zur Party\n<@{counting_bot_mssg.author.id}> hat dein Lieblingsgetränk leider akkustisch nicht mitbekommen. Probiers nochmal mit `{PREFIX}set_drink`")
+
 
 @bot.command(name='pro_channel')
 @commands.has_permissions(administrator=True)
@@ -696,6 +706,7 @@ async def pro_channel(ctx, arg1):
         raise e
     return
 
+
 @bot.command(name='pro_role')
 @commands.has_permissions(administrator=True)
 async def pro_role(ctx, args1):
@@ -714,7 +725,7 @@ async def pro_role(ctx, args1):
         info = COUNT_INFO(ctx.guild.id)
         if info.exists == False:
             COUNT_INFO(ctx.guild.id).create_new_entry(ctx)
-            COUNT_INFO(ctx.guild.id).update_info( pro_role_id=role_id)
+            COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
         else:
             COUNT_INFO(ctx.guild.id).update_info(pro_role_id=role_id)
         await ctx.message.add_reaction('✔')
@@ -722,6 +733,7 @@ async def pro_role(ctx, args1):
         await ctx.message.add_reaction('❌')
         raise e
     return
+
 
 @bot.command(name='pro_threshold')
 @commands.has_permissions(administrator=True)
@@ -750,7 +762,6 @@ async def pro_threshold(ctx, arg1):
         await ctx.message.add_reaction('❌')
         raise e
     return
-
 
 
 # -- Begin Edit Detection --
@@ -814,20 +825,20 @@ async def on_message_error(ctx, error):
     if isinstance(error, ext.commands.errors.CommandNotFound):
         return
     embed = Embed(title=f"Please help", url="https://github.com/bloedboemmel/Discord-Counting-Bot",
-                      description="Äh ja, jetzt ist hier etwas ziemlich schief gelaufen... Im Idealfall sitzt schon ein Nerd dran. Falls du auch manchmal so genannt wirst (warum auch immer) schau doch mal auf GitHub ob du helfen kannst!",
-                      color=Color.red())
+                  description="Äh ja, jetzt ist hier etwas ziemlich schief gelaufen... Im Idealfall sitzt schon ein Nerd dran. Falls du auch manchmal so genannt wirst (warum auch immer) schau doch mal auf GitHub ob du helfen kannst!",
+                  color=Color.red())
     embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
     try:
         channel = bot.get_channel(910230898115506226)
-        await channel.send(ctx.command) # I am trying to send the command with error here
+        await channel.send(ctx.command)  # I am trying to send the command with error here
         await channel.send(error)
     except:
         pass
 
     raise error
 
-    
+
 # -- Begin counting detection --
 
 @bot.event
@@ -850,34 +861,61 @@ async def on_message(_message):
     if info.exists is False:
         return
     else:
+        reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
+
+        # ein paar WiTzIgE reactions
+        if current_count == 100:
+            reaction = ['💯']
+        elif current_count == 420:
+            reaction = ['🍁']
+        elif current_count == 333:
+            reaction = ['🔺', '👁']
+        elif current_count == 666:
+            reaction = ['👹']
+        elif current_count == 1234:
+            reaction = ['🔢']
+        # und ein paar SeLtEnE WiTziGe reactions
+        elif current_count == 1:
+            if random.random() > 0.9:
+                reaction = ['☝']
+        elif current_count == 5:
+            if random.random() > 0.9:
+                reaction = ['🖐️']
+        elif current_count == 69:
+            if random.random() > 0.75:
+                reaction = ['🇳', '🇮', '🇨', '🇪']
+
         count_option = count_type.NOTHING
         if info.is_count_channel(_message) is False and info.is_pro_channel(_message) is False:
             return
         elif info.is_count_channel(_message):
             old_count = int(info.current_count)
             if str(ctx.message.author.id) == str(info.last_user):
-                info.update_info(count = 0, number_of_resets= info.number_of_resets + 1, last_user = '')
+                info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
                 count_option = count_type.GREEDY
             elif old_count + 1 != current_count:
                 # FALSCHE GEZÄHLT
                 last_user = info.last_user
-                info.update_info(count = 0, number_of_resets= info.number_of_resets + 1, last_user = '')
+                info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
                 count_option = count_type.WRONG
             elif old_count + 1 == current_count:
                 # RICHTIG GEZÄHLT
-                
+
                 count = str(current_count)
                 last_user = str(ctx.message.author.id)
                 if int(info.record) < current_count:
                     record = count
                     record_user = str(ctx.message.author.id)
                     record_timestamp = datetime.now()
-                    await ctx.message.add_reaction('☑️')
-                    info.update_info(count = current_count, last_user = last_user, record = record, record_user = record_user, record_timestamp = record_timestamp)
+                    for r in reaction:
+                        await ctx.message.add_reaction(r)
+                    info.update_info(count=current_count, last_user=last_user, record=record, record_user=record_user,
+                                     record_timestamp=record_timestamp)
                 else:
-                    await ctx.message.add_reaction('✅')
-                    info.update_info(count = current_count, last_user = last_user)
-                
+                    for r in reaction:
+                        await ctx.message.add_reaction(r)
+                    info.update_info(count=current_count, last_user=last_user)
+
                 count_option = count_type.RIGHT
                 # auf PRO_ROLE prüfen
                 cursor.execute(
@@ -886,22 +924,25 @@ async def on_message(_message):
                 if temp is not None and info.pro_role_id is not None:
                     guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
                     if int(count_correct) >= int(info.pro_role_threshold):
-                            role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
-                            if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
-                                member = ctx.message.author
-                                await member.add_roles(role)
-                                await ctx.message.add_reaction('🎉')
-                                log_channel = bot.get_channel(info.log_channel_id)
-                                await log_channel.send(f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
+                        role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
+                        if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
+                            member = ctx.message.author
+                            await member.add_roles(role)
+                            await ctx.message.add_reaction('🎉')
+                            log_channel = bot.get_channel(info.log_channel_id)
+                            await log_channel.send(
+                                f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
         elif info.is_pro_channel(_message):
             old_count = int(info.pro_current_count)
             if str(ctx.message.author.id) == str(info.pro_last_user):
-                info.update_info(pro_current_count=  0, pro_number_of_resets = info.pro_number_of_resets + 1, pro_last_user = '')
+                info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
+                                 pro_last_user='')
                 count_option = count_type.GREEDY
             elif old_count + 1 != current_count:
                 # FALSCHE GEZÄHLT
                 last_user = info.pro_last_user
-                info.update_info(pro_current_count= 0, pro_number_of_resets = info.pro_number_of_resets + 1, pro_last_user = '')
+                info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
+                                 pro_last_user='')
                 count_option = count_type.WRONG
             elif old_count + 1 == current_count:
                 # RICHTIG GEZÄHLT
@@ -911,14 +952,16 @@ async def on_message(_message):
                     record = count
                     record_user = str(ctx.message.author.id)
                     record_timestamp = datetime.now()
-                    await ctx.message.add_reaction('☑️')
-                    info.update_info(pro_current_count= current_count, pro_last_user = last_user, pro_record = record, pro_record_user = record_user, pro_record_timestamp = record_timestamp)
+                    for r in reaction:
+                        await ctx.message.add_reaction(r)
+                    info.update_info(pro_current_count=current_count, pro_last_user=last_user, pro_record=record,
+                                     pro_record_user=record_user, pro_record_timestamp=record_timestamp)
                 else:
-                    await ctx.message.add_reaction('✅')
-                    info.update_info(pro_current_count= current_count, pro_last_user = last_user)
+                    for r in reaction:
+                        await ctx.message.add_reaction(r)
+                    info.update_info(pro_current_count=current_count, pro_last_user=last_user)
                 count_option = count_type.RIGHT
-                
-           
+
         if count_option == count_type.GREEDY:
             await ctx.send(f'Nanana, <@{ctx.message.author.id}> hat es etwas eilig. Dann starten wir halt von vorne')
             await ctx.message.add_reaction('🇸')
@@ -927,26 +970,31 @@ async def on_message(_message):
             await ctx.message.add_reaction('🇲')
             await ctx.message.add_reaction('🇪')
             channel = bot.get_channel(int(info.log_channel_id))
-            await channel.send(f'<@{ctx.message.author.id}> hat in {ctx.channel.mention} bei {old_count} zwei hintereinander gezählt')
+            await channel.send(
+                f'<@{ctx.message.author.id}> hat in {ctx.channel.mention} bei {old_count} zwei hintereinander gezählt')
 
             return
         elif count_option == count_type.WRONG:
-            
+
             channel = bot.get_channel(info.log_channel_id)
             await ctx.message.add_reaction('❌')
             if old_count != 0 and info.last_user != '':
                 if old_count > 19:
-                    await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{info.last_user}> jetzt ein Getränk!')
+                    await ctx.send(
+                        f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{info.last_user}> jetzt ein Getränk!')
                     update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
                 else:
-                    await ctx.send(f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
+                    await ctx.send(
+                        f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
             elif current_count == 0:
-                await ctx.send(f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
+                await ctx.send(
+                    f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
             else:
                 await ctx.send(f'<@{ctx.message.author.id}>, Fun Fact: Wir starten bei 1')
             update_stats(ctx, info.guild_id, ctx.message.author.id, correct_count=False)
         elif count_option == count_type.RIGHT:
             update_stats(ctx, info.guild_id, ctx.message.author.id, current_number=current_count)
+
 
 @bot.event
 async def on_ready():
@@ -955,6 +1003,7 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     changepresence.start()
+
 
 @tasks.loop(seconds=300)  # How often the bot should change status, mine is set on every 40 seconds
 async def changepresence():
@@ -969,11 +1018,11 @@ async def changepresence():
         Activity(type=ActivityType.listening, name="Ham kummst!"),
         Activity(type=ActivityType.competing, name="Naked Mile"),
         Game(name=f"{PREFIX}help")
-        ]
-   
+    ]
+
     x = game[random.randint(0, len(game) - 1)]
-      
-    await bot.change_presence(activity=x)   
+
+    await bot.change_presence(activity=x)
 
 
 # -- Begin Initialization code --
