@@ -864,8 +864,12 @@ async def on_message(_message):
     if info.exists is False:
         return
     else:
-        reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
-
+        if info.is_count_channel(_message):
+            reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
+        elif info.is_pro_channel(_message):
+            reaction = ['☑️'] if int(info.pro_record) < current_count else ['✅']
+        else:
+            return
         # ein paar WiTzIgE reactions
         if current_count == 100:
             reaction = ['💯']
@@ -889,9 +893,8 @@ async def on_message(_message):
                 reaction = ['🇳', '🇮', '🇨', '🇪']
 
         count_option = count_type.NOTHING
-        if info.is_count_channel(_message) is False and info.is_pro_channel(_message) is False:
-            return
-        elif info.is_count_channel(_message):
+        
+        if info.is_count_channel(_message):
             old_count = int(info.current_count)
             if str(ctx.message.author.id) == str(info.last_user):
                 info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
