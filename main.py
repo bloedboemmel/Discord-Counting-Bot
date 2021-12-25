@@ -576,10 +576,8 @@ async def highscore(ctx):
     if db_results is None or len(db_results) == 0:
         await ctx.send("Dieser Server hat noch keine Stats")
         return
-    for result in db_results:
-        result[2] = int(result[2]) # count_correct
     
-    db_results.sort(key=lambda x: x[2], reverse=True) # sort by count_correct
+    db_results.sort(key=lambda x: int(x[2]), reverse=True) # sort by count_correct
     i = 1
     message = ""
     for result in db_results:
@@ -606,10 +604,8 @@ async def highcount(ctx):
     if db_results is None or len(db_results) == 0:
         await ctx.send("Dieser Server hat noch keine Stats")
         return
-    for result in db_results:
-        result[4] = int(result[4]) # highest_valid_count
     
-    db_results.sort(key=lambda x: x[4], reverse=True) # sort by highest_valid_count
+    db_results.sort(key=lambda x: int(x[4]), reverse=True) # sort by highest_valid_count
 
     i = 1
     message = ""
@@ -1044,7 +1040,7 @@ async def changepresence():
         Activity(type=ActivityType.competing, name="Naked Mile"),
         Activity(type=ActivityType.watching, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", url= "https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
         Game("Ich hab noch nie...."),
-        Activity(type= ActivityType.watching, name= "Trinkspiele - Die besten Saufspiele für alle Anlässe", url="https://beerpong.de/pages/trinkspiele", emoji=":beer:", timestamp={'start': datetime.now(), 'end': None}),
+        Activity(type= ActivityType.watching, name= "Trinkspiele - Die besten Saufspiele für alle Anlässe", url="https://beerpong.de/pages/trinkspiele",  timestamp={'start': datetime.now(), 'end': None}),
         Game(name=f"{PREFIX}help")
     ]
 
