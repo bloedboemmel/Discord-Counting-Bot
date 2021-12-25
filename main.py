@@ -571,8 +571,15 @@ async def highscore(ctx):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     # print("highscore")
-    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'")
     db_results = cursor.fetchall()
+    if db_results is None or len(db_results) == 0:
+        await ctx.send("Dieser Server hat noch keine Stats")
+        return
+    for result in db_results:
+        result[2] = int(result[2]) # count_correct
+    
+    db_results.sort(key=lambda x: x[2], reverse=True) # sort by count_correct
     i = 1
     message = ""
     for result in db_results:
@@ -594,8 +601,16 @@ async def highscore(ctx):
 async def highcount(ctx):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
-    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY highest_valid_count DESC")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'")
     db_results = cursor.fetchall()
+    if db_results is None or len(db_results) == 0:
+        await ctx.send("Dieser Server hat noch keine Stats")
+        return
+    for result in db_results:
+        result[4] = int(result[4]) # highest_valid_count
+    
+    db_results.sort(key=lambda x: x[4], reverse=True) # sort by highest_valid_count
+
     i = 1
     message = ""
     for result in db_results:
@@ -1021,12 +1036,15 @@ async def changepresence():
         Game(name="Pferderennen"),
         Game(name="Busfahren"),
         Activity(type=ActivityType.listening, name="Radler ist kein Alkohol"),
-        Activity(type=ActivityType.streaming, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
+        Activity(type=ActivityType.streaming, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", url= "https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
         Activity(type=ActivityType.watching, name="2 Girls, 1 Cup"),
         Game(name="Kingscup"),
-        Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim"),
+        Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim)"),
         Activity(type=ActivityType.listening, name="Ham kummst!"),
         Activity(type=ActivityType.competing, name="Naked Mile"),
+        Activity(type=ActivityType.watching, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", url= "https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
+        Game("Ich hab noch nie...."),
+        Activity(type= ActivityType.watching, name= "Trinkspiele - Die besten Saufspiele für alle Anlässe", url="https://beerpong.de/pages/trinkspiele", emoji=":beer:", timestamp={'start': datetime.now(), 'end': None}),
         Game(name=f"{PREFIX}help")
     ]
 
