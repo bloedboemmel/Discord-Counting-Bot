@@ -999,11 +999,11 @@ async def on_message(_message):
 
                 channel = bot.get_channel(info.log_channel_id)
                 await ctx.message.add_reaction('❌')
-                if old_count != 0 and info.last_user != '':
+                if old_count != 0 and last_user != '':
                     if old_count > 19:
                         await ctx.send(
-                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{info.last_user}> jetzt ein Getränk!')
-                        update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
+                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{last_user}> jetzt ein Getränk!')
+                        update_beertable(info.guild_id, last_user, ctx.message.author.id, +1)
                     else:
                         await ctx.send(
                             f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
