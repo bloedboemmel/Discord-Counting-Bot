@@ -861,11 +861,15 @@ async def on_message(_message):
     if info.exists is False:
         return
     else:
-        reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
+        reaction = ['☑️'] if int(info.record) < current_count else ['✅']
 
-        # ein paar WiTzIgE reactions
         if current_count == 100:
             reaction = ['💯']
+        # TODO: 110 bzw 112 nur nutzen wenn der bot auf deutsch gestellt ist
+        elif current_count == 110:
+            reaction = ['🚓']
+        elif current_count == 112:
+            reaction = ['🚒']
         elif current_count == 420:
             reaction = ['🍁']
         elif current_count == 333:
@@ -876,13 +880,13 @@ async def on_message(_message):
             reaction = ['🔢']
         # und ein paar SeLtEnE WiTziGe reactions
         elif current_count == 1:
-            if random.random() > 0.9:
+            if random.random() > 0.7:
                 reaction = ['☝']
         elif current_count == 5:
-            if random.random() > 0.9:
+            if random.random() > 0.7:
                 reaction = ['🖐️']
         elif current_count == 69:
-            if random.random() > 0.75:
+            if random.random() > 0.5:
                 reaction = ['🇳', '🇮', '🇨', '🇪']
 
         count_option = count_type.NOTHING
