@@ -1,3 +1,4 @@
+import asyncio
 import sqlite3
 import os
 import random
@@ -295,7 +296,7 @@ async def count_help(ctx):
                   color=Color.purple())
     embed.set_thumbnail(url="https://pbs.twimg.com/media/D9x2dXnWsAgrqN7.jpg")
     if ctx.author.guild_permissions.administrator is True:
-        message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal einzusehen\n"
+        message = f"`{PREFIX}counting_channel aktueller_kanal` um den Zählfortschritt in diesem Kanal zu kontrollieren\n"
         message += f"`{PREFIX}counting_channel @anderer_kanal` um den Kanal in dem gezählt wird zu ändern\n"
         message += f"`{PREFIX}log_channel aktueller_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
         message += f"`{PREFIX}log_channel @anderer_kanal` um den Kanal mit Log Nachrichten zu ändern\n"
@@ -570,8 +571,13 @@ async def highscore(ctx):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
     # print("highscore")
-    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY count_correct DESC")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'")
     db_results = cursor.fetchall()
+    if db_results is None or len(db_results) == 0:
+        await ctx.send("Dieser Server hat noch keine Stats")
+        return
+
+    db_results.sort(key=lambda x: int(x[2]), reverse=True)  # sort by count_correct
     i = 1
     message = ""
     for result in db_results:
@@ -593,8 +599,14 @@ async def highscore(ctx):
 async def highcount(ctx):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
-    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'  ORDER BY highest_valid_count DESC")
+    cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}'")
     db_results = cursor.fetchall()
+    if db_results is None or len(db_results) == 0:
+        await ctx.send("Dieser Server hat noch keine Stats")
+        return
+
+    db_results.sort(key=lambda x: int(x[4]), reverse=True)  # sort by highest_valid_count
+
     i = 1
     message = ""
     for result in db_results:
@@ -770,7 +782,7 @@ async def on_message_edit(before, after):
     if before.content != after.content:
         info = COUNT_INFO(before.guild.id)
 
-        if info.exists is False or info.isrightcountchannel(after) is False:
+        if info.exists is False or (info.is_count_channel(after) or info.is_pro_channel(after)) is False:
             return
         try:
             changed_count, trash = before.content.split(' ', 1)
@@ -781,13 +793,13 @@ async def on_message_edit(before, after):
         except ValueError:
             return
         if info.is_count_channel(after):
-            if int(info.last_user) != int(after.author.id) or changed_count != int(info.old_count):
+            if int(info.last_user) != int(after.author.id) or changed_count != int(info.current_count):
                 return
-            old_count = int(info.old_count)
+            old_count = int(info.current_count)
         if info.is_pro_channel(after):
-            if int(info.pro_last_user) != int(after.author.id) or changed_count != int(info.pro_old_count):
+            if int(info.pro_last_user) != int(after.author.id) or changed_count != int(info.pro_current_count):
                 return
-            old_count = int(info.pro_old_count)
+            old_count = int(info.pro_current_count)
         await after.add_reaction('😡')
         await after.reply(
             f"HALT STOP, <@{after.author.id}> hat die Nachricht bearbeitet. Die nächste Zahl ist eigentlich {str(int(old_count) + 1)}")
@@ -808,18 +820,23 @@ async def on_message_delete(message):
         return
 
     if info.is_count_channel(message):
-        if int(info.last_user) != int(message.author.id) or changed_count != int(info.old_count):
+        if int(info.last_user) != int(message.author.id) or changed_count != int(info.current_count):
             return
-        old_count = int(info.old_count)
+        old_count = int(info.current_count)
     if info.is_pro_channel(message):
-        if int(info.pro_last_user) != int(message.author.id) or changed_count != int(info.pro_old_count):
+        if int(info.pro_last_user) != int(message.author.id) or changed_count != int(info.pro_current_count):
             return
-        old_count = int(info.pro_old_count)
+        old_count = int(info.pro_current_count)
     await message.channel.send(
         f"HALT STOP, <@{message.author.id}> hat eine Zahl gelöscht. Weiter geht's mit {int(old_count) + 1}")
 
 
 # -- Send error to bloedboemmel- server --
+@bot.event
+async def on_command_error(ctx, error):
+    on_message_error(ctx, error)
+
+
 @bot.event
 async def on_message_error(ctx, error):
     if isinstance(error, ext.commands.errors.CommandNotFound):
@@ -841,6 +858,9 @@ async def on_message_error(ctx, error):
 
 # -- Begin counting detection --
 
+lock = asyncio.Lock()
+
+
 @bot.event
 async def on_message(_message):
     ctx = await bot.get_context(_message)
@@ -861,143 +881,151 @@ async def on_message(_message):
     if info.exists is False:
         return
     else:
-        reaction = ['☑️'] if int(info.record) < current_count else ['✅']
-
-        if current_count == 100:
-            reaction = ['💯']
-        # TODO: 110 bzw 112 nur nutzen wenn der bot auf deutsch gestellt ist
-        elif current_count == 110:
-            reaction = ['🚓']
-        elif current_count == 112:
-            reaction = ['🚒']
-        elif current_count == 420:
-            reaction = ['🍁']
-        elif current_count == 333:
-            reaction = ['🔺', '👁']
-        elif current_count == 666:
-            reaction = ['👹']
-        elif current_count == 1234:
-            reaction = ['🔢']
-        # und ein paar SeLtEnE WiTziGe reactions
-        elif current_count == 1:
-            if random.random() > 0.7:
-                reaction = ['☝']
-        elif current_count == 5:
-            if random.random() > 0.7:
-                reaction = ['🖐️']
-        elif current_count == 69:
-            if random.random() > 0.5:
-                reaction = ['🇳', '🇮', '🇨', '🇪']
-
-        count_option = count_type.NOTHING
-        if info.is_count_channel(_message) is False and info.is_pro_channel(_message) is False:
-            return
-        elif info.is_count_channel(_message):
-            old_count = int(info.current_count)
-            if str(ctx.message.author.id) == str(info.last_user):
-                info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
-                count_option = count_type.GREEDY
-            elif old_count + 1 != current_count:
-                # FALSCHE GEZÄHLT
-                last_user = info.last_user
-                info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
-                count_option = count_type.WRONG
-            elif old_count + 1 == current_count:
-                # RICHTIG GEZÄHLT
-
-                count = str(current_count)
-                last_user = str(ctx.message.author.id)
-                if int(info.record) < current_count:
-                    record = count
-                    record_user = str(ctx.message.author.id)
-                    record_timestamp = datetime.now()
-                    for r in reaction:
-                        await ctx.message.add_reaction(r)
-                    info.update_info(count=current_count, last_user=last_user, record=record, record_user=record_user,
-                                     record_timestamp=record_timestamp)
-                else:
-                    for r in reaction:
-                        await ctx.message.add_reaction(r)
-                    info.update_info(count=current_count, last_user=last_user)
-
-                count_option = count_type.RIGHT
-                # auf PRO_ROLE prüfen
-                cursor.execute(
-                    f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
-                temp = cursor.fetchone()
-                if temp is not None and info.pro_role_id is not None:
-                    guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
-                    if int(count_correct) >= int(info.pro_role_threshold):
-                        role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
-                        if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
-                            member = ctx.message.author
-                            await member.add_roles(role)
-                            await ctx.message.add_reaction('🎉')
-                            log_channel = bot.get_channel(info.log_channel_id)
-                            await log_channel.send(
-                                f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
-        elif info.is_pro_channel(_message):
-            old_count = int(info.pro_current_count)
-            if str(ctx.message.author.id) == str(info.pro_last_user):
-                info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
-                                 pro_last_user='')
-                count_option = count_type.GREEDY
-            elif old_count + 1 != current_count:
-                # FALSCHE GEZÄHLT
-                last_user = info.pro_last_user
-                info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
-                                 pro_last_user='')
-                count_option = count_type.WRONG
-            elif old_count + 1 == current_count:
-                # RICHTIG GEZÄHLT
-                count = str(current_count)
-                last_user = str(ctx.message.author.id)
-                if int(info.pro_record) < current_count:
-                    record = count
-                    record_user = str(ctx.message.author.id)
-                    record_timestamp = datetime.now()
-                    for r in reaction:
-                        await ctx.message.add_reaction(r)
-                    info.update_info(pro_current_count=current_count, pro_last_user=last_user, pro_record=record,
-                                     pro_record_user=record_user, pro_record_timestamp=record_timestamp)
-                else:
-                    for r in reaction:
-                        await ctx.message.add_reaction(r)
-                    info.update_info(pro_current_count=current_count, pro_last_user=last_user)
-                count_option = count_type.RIGHT
-
-        if count_option == count_type.GREEDY:
-            await ctx.send(f'Nanana, <@{ctx.message.author.id}> hat es etwas eilig. Dann starten wir halt von vorne')
-            await ctx.message.add_reaction('🇸')
-            await ctx.message.add_reaction('🇭')
-            await ctx.message.add_reaction('🇦')
-            await ctx.message.add_reaction('🇲')
-            await ctx.message.add_reaction('🇪')
-            channel = bot.get_channel(int(info.log_channel_id))
-            await channel.send(
-                f'<@{ctx.message.author.id}> hat in {ctx.channel.mention} bei {old_count} zwei hintereinander gezählt')
-
-            return
-        elif count_option == count_type.WRONG:
-
-            channel = bot.get_channel(info.log_channel_id)
-            await ctx.message.add_reaction('❌')
-            if old_count != 0 and info.last_user != '':
-                if old_count > 19:
-                    await ctx.send(
-                        f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{info.last_user}> jetzt ein Getränk!')
-                    update_beertable(info.guild_id, info.last_user, ctx.message.author.id, +1)
-                else:
-                    await ctx.send(
-                        f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
-            elif current_count == 0:
-                await ctx.send(
-                    f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
+        async with lock:
+            if info.is_count_channel(_message):
+                reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
+            elif info.is_pro_channel(_message):
+                reaction = ['☑️'] if int(info.pro_record) < current_count else ['✅']
             else:
-                await ctx.send(f'<@{ctx.message.author.id}>, Fun Fact: Wir starten bei 1')
-            update_stats(ctx, info.guild_id, ctx.message.author.id, correct_count=False)
-        elif count_option == count_type.RIGHT:
-            update_stats(ctx, info.guild_id, ctx.message.author.id, current_number=current_count)
+                return
+
+            if current_count == 100:
+                reaction = ['💯']
+            # TODO: 110 bzw 112 nur nutzen wenn der bot auf deutsch gestellt ist
+            elif current_count == 110:
+                reaction = ['🚓']
+            elif current_count == 112:
+                reaction = ['🚒']
+            elif current_count == 420:
+                reaction = ['🍁']
+            elif current_count == 333:
+                reaction = ['🔺', '👁']
+            elif current_count == 666:
+                reaction = ['👹']
+            elif current_count == 1234:
+                reaction = ['🔢']
+            # und ein paar SeLtEnE WiTziGe reactions
+            elif current_count == 1:
+                if random.random() > 0.7:
+                    reaction = ['☝']
+            elif current_count == 5:
+                if random.random() > 0.7:
+                    reaction = ['🖐️']
+            elif current_count == 69:
+                if random.random() > 0.5:
+                    reaction = ['🇳', '🇮', '🇨', '🇪']
+
+            count_option = count_type.NOTHING
+
+            if info.is_count_channel(_message):
+                old_count = int(info.current_count)
+                if str(ctx.message.author.id) == str(info.last_user):
+                    info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
+                    count_option = count_type.GREEDY
+                elif old_count + 1 != current_count:
+                    # FALSCHE GEZÄHLT
+                    last_user = info.last_user
+                    info.update_info(count=0, number_of_resets=info.number_of_resets + 1, last_user='')
+                    count_option = count_type.WRONG
+                elif old_count + 1 == current_count:
+                    # RICHTIG GEZÄHLT
+
+                    count = str(current_count)
+                    last_user = str(ctx.message.author.id)
+                    if int(info.record) < current_count:
+                        record = count
+                        record_user = str(ctx.message.author.id)
+                        record_timestamp = datetime.now()
+                        for r in reaction:
+                            await ctx.message.add_reaction(r)
+                        info.update_info(count=current_count, last_user=last_user, record=record,
+                                         record_user=record_user,
+                                         record_timestamp=record_timestamp)
+                    else:
+                        for r in reaction:
+                            await ctx.message.add_reaction(r)
+                        info.update_info(count=current_count, last_user=last_user)
+
+                    count_option = count_type.RIGHT
+                    # auf PRO_ROLE prüfen
+                    cursor.execute(
+                        f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
+                    temp = cursor.fetchone()
+                    if temp is not None and info.pro_role_id is not None:
+                        guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+                        if int(count_correct) >= int(info.pro_role_threshold):
+                            role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
+                            if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
+                                member = ctx.message.author
+                                await member.add_roles(role)
+                                await ctx.message.add_reaction('🎉')
+                                log_channel = bot.get_channel(int(info.log_channel_id))
+                                log_channel = ctx if log_channel is None else log_channel
+                                await log_channel.send(
+                                    f"<@{ctx.message.author.id}> hat die PRO-Rolle erhalten und darf jetzt bei den Großen mitspielen!")
+            elif info.is_pro_channel(_message):
+                old_count = int(info.pro_current_count)
+                if str(ctx.message.author.id) == str(info.pro_last_user):
+                    info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
+                                     pro_last_user='')
+                    count_option = count_type.GREEDY
+                elif old_count + 1 != current_count:
+                    # FALSCHE GEZÄHLT
+                    last_user = info.pro_last_user
+                    info.update_info(pro_current_count=0, pro_number_of_resets=info.pro_number_of_resets + 1,
+                                     pro_last_user='')
+                    count_option = count_type.WRONG
+                elif old_count + 1 == current_count:
+                    # RICHTIG GEZÄHLT
+                    count = str(current_count)
+                    last_user = str(ctx.message.author.id)
+                    if int(info.pro_record) < current_count:
+                        record = count
+                        record_user = str(ctx.message.author.id)
+                        record_timestamp = datetime.now()
+                        for r in reaction:
+                            await ctx.message.add_reaction(r)
+                        info.update_info(pro_current_count=current_count, pro_last_user=last_user, pro_record=record,
+                                         pro_record_user=record_user, pro_record_timestamp=record_timestamp)
+                    else:
+                        for r in reaction:
+                            await ctx.message.add_reaction(r)
+                        info.update_info(pro_current_count=current_count, pro_last_user=last_user)
+                    count_option = count_type.RIGHT
+
+            if count_option == count_type.GREEDY:
+                await ctx.send(
+                    f'Nanana, <@{ctx.message.author.id}> hat es etwas eilig. Dann starten wir halt von vorne')
+                await ctx.message.add_reaction('🇸')
+                await ctx.message.add_reaction('🇭')
+                await ctx.message.add_reaction('🇦')
+                await ctx.message.add_reaction('🇲')
+                await ctx.message.add_reaction('🇪')
+                channel = bot.get_channel(int(info.log_channel_id))
+                await channel.send(
+                    f'<@{ctx.message.author.id}> hat in {ctx.channel.mention} bei {old_count} zwei hintereinander gezählt')
+
+                return
+            elif count_option == count_type.WRONG:
+
+                channel = bot.get_channel(info.log_channel_id)
+                await ctx.message.add_reaction('❌')
+                if old_count != 0 and last_user != '':
+                    if old_count > 19:
+                        await ctx.send(
+                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{last_user}> jetzt ein Getränk!')
+                        update_beertable(info.guild_id, last_user, ctx.message.author.id, +1)
+                    else:
+                        await ctx.send(
+                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
+                elif current_count == 0:
+                    await ctx.send(
+                        f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
+                else:
+                    await ctx.send(f'<@{ctx.message.author.id}>, Fun Fact: Wir starten bei 1')
+                update_stats(ctx, info.guild_id, ctx.message.author.id, correct_count=False)
+            elif count_option == count_type.RIGHT:
+                update_stats(ctx, info.guild_id, ctx.message.author.id, current_number=current_count)
 
 
 @bot.event
@@ -1015,12 +1043,18 @@ async def changepresence():
         Game(name="Pferderennen"),
         Game(name="Busfahren"),
         Activity(type=ActivityType.listening, name="Radler ist kein Alkohol"),
-        Activity(type=ActivityType.streaming, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
+        Activity(type=ActivityType.streaming, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                 url="https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
         Activity(type=ActivityType.watching, name="2 Girls, 1 Cup"),
         Game(name="Kingscup"),
-        Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim"),
+        Activity(type=ActivityType.listening, name="Mallorca (Da bin ich daheim)"),
         Activity(type=ActivityType.listening, name="Ham kummst!"),
         Activity(type=ActivityType.competing, name="Naked Mile"),
+        Activity(type=ActivityType.watching, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                 url="https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
+        Game("Ich hab noch nie...."),
+        Activity(type=ActivityType.watching, name="Trinkspiele - Die besten Saufspiele für alle Anlässe",
+                 url="https://beerpong.de/pages/trinkspiele", timestamp={'start': datetime.now(), 'end': None}),
         Game(name=f"{PREFIX}help")
     ]
 
