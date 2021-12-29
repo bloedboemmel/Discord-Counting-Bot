@@ -8,7 +8,7 @@ Heavily inspired by [AlexVerricos Counting_bot](https://github.com/AlexVerrico/D
 
 ## Run the fully functioning bot
 
-[![Discord Bots](https://top.gg/api/widget/907378896004063272.svg)](https://top.gg/bot/907378896004063272)
+[![Discord Bots](https://top.gg/api/widget/907378896004063272.svg)](https://discord.com/api/oauth2/authorize?client_id=907378896004063272&permissions=137707727936&redirect_uri=https%3A%2F%2Fdiscord.com%2Fapi%2Foauth2%2Fauthorize&scope=bot)
 
 ## Or install and run it yourself
 1. Make sure you’re logged on to the [Discord website](https://discord.com/).
