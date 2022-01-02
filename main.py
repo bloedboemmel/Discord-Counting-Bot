@@ -316,7 +316,8 @@ async def count_help(ctx):
     message += f"`{PREFIX}spend_drink @user` - Sag dem Bot Bescheid, dass dir dein zustehendes Bier endlich ausgegeben wurde\n"
     message += f"`{PREFIX}set_drink` - Wenn dein Lieblingsgetränk komischerweise kein Bier sein sollte kannst du das hier ändern (aber kein Radler)!\n"
     message += f"`{PREFIX}copy_data message_id` - Kopiert die Daten vom originalen Bot\n"
-    message += f"`{PREFIX}delete_me` Löscht deine Daten aus dem Metaverse (tschüss)"
+    message += f"`{PREFIX}delete_me` Löscht deine Daten aus dem Metaverse (tschüss)\n"
+    message += f"`{PREFIX}bug - Markiere einen Bug`"
     embed.add_field(name="User-Commands", value=message, inline=False)
     embed.set_footer(text=f"{PREFIX}help")
     await ctx.send(embed=embed)
@@ -775,6 +776,13 @@ async def pro_threshold(ctx, arg1):
         raise e
     return
 
+@bot.command(name='bug')
+async def bug(ctx, *args):
+    #Link to issue page on github
+    link = "https://github.com/bloedboemmel/Discord-Counting-Bot/issues/new?assignees=&labels=bug&template=bug_report.md&title=Discord-Counting-Bot%20Bug"
+    await ctx.send(f"{ctx.author.mention} Melde den Bug bitte hier!\n{link}")
+    await ctx.add_reaction('🤔')
+
 
 # -- Begin Edit Detection --
 @bot.event
@@ -873,19 +881,20 @@ async def on_message(_message):
         current_count = int(current_count)
     except ValueError:
         return
-    info = COUNT_INFO(_message.guild.id)
-    if info.exists is False:
-        return
-    else:
-        async with lock:
+    async with lock:
+        info = COUNT_INFO(_message.guild.id)
+        if info.exists is False:
+            return
+        else:
             if info.is_count_channel(_message):
                 reaction = ['☑️'] if int(info.record) < current_count else ['✅']  # such enterprise code, much wow
             elif info.is_pro_channel(_message):
                 reaction = ['☑️'] if int(info.pro_record) < current_count else ['✅']
             else:
                 return
-
-            if current_count == 100:
+            if current_count == 42:
+                reaction = ['🤔']
+            elif current_count == 100:
                 reaction = ['💯']
             # TODO: 110 bzw 112 nur nutzen wenn der bot auf deutsch gestellt ist
             elif current_count == 110:
@@ -1045,6 +1054,7 @@ async def changepresence():
         Activity(type=ActivityType.competing, name="Naked Mile"),
         Activity(type=ActivityType.watching, name="https://www.youtube.com/watch?v=dQw4w9WgXcQ", url= "https://www.youtube.com/watch?v=dQw4w9WgXcQ", platform="YouTube"),
         Game("Ich hab noch nie...."),
+        Game("saufen.io"),
         Activity(type= ActivityType.watching, name= "Trinkspiele - Die besten Saufspiele für alle Anlässe", url="https://beerpong.de/pages/trinkspiele",  timestamp={'start': datetime.now(), 'end': None}),
         Game(name=f"{PREFIX}help")
     ]
