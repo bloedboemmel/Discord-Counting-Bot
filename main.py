@@ -28,7 +28,7 @@ count_info_headers = ['guild_id', 'current_count', 'number_of_resets', 'last_use
                       'record', 'record_user', 'record_timestamp',
                       'pro_role_threshold', 'pro_role_id', 'pro_channel_id', 'pro_current_count',
                       'pro_number_of_resets', 'pro_last_user', 'pro_record', 'pro_record_user', 'pro_record_timestamp']
-stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink']
+stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity', 'drink', 'fails_since_pro']
 beer_headers = ['guild_id', 'user', 'owed_user', 'count']
 connection = sqlite3.connect(DbName)
 cursor = connection.cursor()
@@ -247,8 +247,15 @@ def update_beertable(guild_id, user, owed_user, count, second_try=False, spend_b
         return True, int(saved_count) + int(count)
 
 
-def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drink=""):
+def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drink="", pro_fail=False):
     # stat_headers = ['guild_id', 'user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
+
+    # korrekt gezählt und pro fail gleichzeitig macht keinen sinn
+    if (correct_count and pro_fail):
+        print(f"irgendwas macht hier keinen sinn... update_stats wurde aufgerufen mit "
+              f"guild_id={guild_id}, user={user}, correct_count={correct_count}, "
+              f"current_number={current_number}, drink={drink}, pro_fail={pro_fail}")
+        return
 
     cursor.execute(f"SELECT * FROM stats WHERE guild_id = '{guild_id}' AND user = '{user}'")
     temp = cursor.fetchone()
@@ -273,7 +280,12 @@ def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drin
                 f"UPDATE stats SET count_correct = count_correct + 1, highest_valid_count = ?, last_activity = ? WHERE guild_id = '{guild_id}' AND user = '{user}'",
                 (highest_valid_count, last_activity,))
         else:
-            cursor.execute(
+            if pro_fail:
+                cursor.execute(
+                f"UPDATE stats SET count_wrong = (count_wrong + 1) % 3, fails_since_pro = fails_since_pro + 1, last_activity = ? WHERE guild_id = '{guild_id}' AND user = '{user}'",
+                (last_activity,))
+            else:
+                cursor.execute(
                 f"UPDATE stats SET count_wrong = count_wrong + 1, last_activity = ? WHERE guild_id = '{guild_id}' AND user = '{user}'",
                 (last_activity,))
         connection.commit()
@@ -451,7 +463,7 @@ async def beer_count(ctx, args1=""):
         if temp is None:
             drink = "beer"
         else:
-            guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+            guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro = temp
 
         str += f"<@{user2}> schuldet <@{user1}> {count} {drink}\n"
 
@@ -553,10 +565,19 @@ async def user(ctx, arg1=""):
         return
     else:
         # stat_headers = ['user', 'count_correct', 'count_wrong', 'highest_valid_count', 'last_activity']
-        guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+        guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro = temp
+        info = COUNT_INFO(ctx.guild.id)
+        role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
+        is_pro = False
+        if role is not None:
+            is_pro = role in ctx.message.author.roles
+
         percent_correct = round(int(count_correct) / (int(count_correct) + int(count_wrong)) * 100, 2)
         message += f"`Richtig gezählt:` {count_correct}\n"
         message += f"`Verzählt:` {count_wrong}\n"
+        # TODO nur zu beginn zum testen, das soll man dann eigentlich nicht mehr sehen
+        if is_pro:
+            message += f"`Verzählt seit Zuganz zum Profi Channel:` {fails_since_pro}\n"
         message += f"`Prozentual richtig:` {percent_correct} %\n"
         message += f"`Höchste richtige Zahl:` {highest_valid_count}\n"
         message += f"`Zuletzt online:` {time_since(last_activity)}\n"
@@ -921,6 +942,9 @@ async def on_message(_message):
                     reaction = ['🇳', '🇮', '🇨', '🇪']
 
             count_option = count_type.NOTHING
+            cursor.execute(
+                f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
+            temp = cursor.fetchone()
             
             if info.is_count_channel(_message):
                 old_count = int(info.current_count)
@@ -952,11 +976,8 @@ async def on_message(_message):
 
                     count_option = count_type.RIGHT
                     # auf PRO_ROLE prüfen
-                    cursor.execute(
-                        f"SELECT * FROM stats WHERE guild_id = '{ctx.guild.id}' AND user = '{ctx.message.author.id}'")
-                    temp = cursor.fetchone()
                     if temp is not None and info.pro_role_id is not None:
-                        guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink = temp
+                        guild_id, msg_user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro = temp
                         if int(count_correct) >= int(info.pro_role_threshold):
                             role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
                             if role is not None and get(ctx.message.author.roles, id=info.pro_role_id) is None:
@@ -1010,23 +1031,42 @@ async def on_message(_message):
 
                 return
             elif count_option == count_type.WRONG:
-
                 channel = bot.get_channel(info.log_channel_id)
+
+                # bei 0 die pro rolle zu verlieren wäre schon sehr assi
+                remove_pro_role = False
+                if current_count <= 1:
+                    if temp is not None and info.pro_role_id is not None:
+                        role = get(bot.get_guild(ctx.guild.id).roles, id=info.pro_role_id)
+                        pro_fail = pro_role in ctx.message.author.roles
+                        guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro = temp
+                        if fails_since_pro >= 2:
+                            remove_pro_role = True
+                            appended_msg = f"\n\nDas war das dritte Fail seitdem <@{ctx.message.author.id}> die PRO-Rolle hat, deshalb hat <@{ctx.message.author.id}> die PRO-Rolle wieder verloren."
+                        else:
+                            appended_msg = ""
+
                 await ctx.message.add_reaction('❌')
+                if remove_pro_role:
+                    await ctx.message.add_reaction('⚠')
                 if old_count != 0 and last_user != '':
                     if old_count > 19:
                         await ctx.send(
-                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{last_user}> jetzt ein Getränk!')
+                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt und schuldet <@{last_user}> jetzt ein Getränk!{appended_msg}')
                         update_beertable(info.guild_id, last_user, ctx.message.author.id, +1)
                     else:
                         await ctx.send(
-                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.')
+                            f'Mööööp, <@{ctx.message.author.id}> hat falsch gezählt, schuldet allerdings niemandem ein Getränk.{appended_msg}')
                 elif current_count == 0:
                     await ctx.send(
                         f'<@{ctx.message.author.id}>, du magst zwar Informatiker-Jokes witzig finden, aber wir beginnen immer noch bei 1')
                 else:
                     await ctx.send(f'<@{ctx.message.author.id}>, Fun Fact: Wir starten bei 1')
-                update_stats(ctx, info.guild_id, ctx.message.author.id, correct_count=False)
+
+                # pro role erst hier removen, damit der user die vom bot gesendete nachricht noch sieht, bevor er den channel nicht mehr sieht
+                if remove_pro_role:
+                    await member.remove_roles(role)
+                update_stats(ctx, info.guild_id, ctx.message.author.id, correct_count=False, pro_fail=pro_fail)
             elif count_option == count_type.RIGHT:
                 update_stats(ctx, info.guild_id, ctx.message.author.id, current_number=current_count)
 
