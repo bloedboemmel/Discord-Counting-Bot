@@ -266,10 +266,10 @@ def update_stats(ctx, guild_id, user, correct_count=True, current_number=1, drin
             drink = "beer"
         if correct_count is True:
             cursor.execute(
-                f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{guild_id}', '{user}', '1', '0', '{current_number}', '{last_activity}', '{drink}')")
+                f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro) VALUES ('{guild_id}', '{user}', '1', '0', '{current_number}', '{last_activity}', '{drink}', '0')")
         else:
             cursor.execute(
-                f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink) VALUES ('{guild_id}', '{user}', '0', '1', '{current_number}', '{last_activity}', '{drink}')")
+                f"INSERT INTO stats (guild_id, user, count_correct, count_wrong, highest_valid_count, last_activity, drink, fails_since_pro) VALUES ('{guild_id}', '{user}', '0', '1', '{current_number}', '{last_activity}', '{drink}', '0')")
         connection.commit()
     else:
         highest_valid_count = temp[4]
