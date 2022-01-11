@@ -461,7 +461,7 @@ async def beer_count(ctx, args1=""):
         await ctx.send(embed=embed)
 
 
-@bot.command(name='spend_beer')
+@bot.command(name='spend_beer', aliases=['spend_drink', 'spend_cocktail'])
 async def spend_beer(ctx, args1=""):
     if not COUNT_INFO(ctx.guild.id).is_log_channel(ctx):
         return
