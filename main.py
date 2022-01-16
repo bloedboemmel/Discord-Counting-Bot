@@ -1,15 +1,13 @@
 import asyncio
-import sqlite3
 import os
 import random
-from discord.client import Client
-from discord.enums import Enum
-from dotenv import load_dotenv
-from discord.ext import commands, tasks
-from discord import Intents, Embed, Color, guild, message, ext, Activity, Game, ActivityType
-from discord.utils import get
-
+import sqlite3
 from datetime import datetime
+from discord import Intents, Embed, Color, ext, Activity, Game, ActivityType
+from discord.enums import Enum
+from discord.ext import commands, tasks
+from discord.utils import get
+from dotenv import load_dotenv
 
 intents = Intents.default()
 intents.guild_messages = True
@@ -842,7 +840,7 @@ async def on_message_delete(message):
 # -- Send error to bloedboemmel- server --
 @bot.event
 async def on_command_error(ctx, error):
-    on_message_error(ctx, error)
+    await on_message_error(ctx, error)
 @bot.event
 async def on_message_error(ctx, error):
     if isinstance(error, ext.commands.errors.CommandNotFound):
